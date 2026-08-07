@@ -152,7 +152,7 @@ Students will primarily use the portal to view their academic information.
 
 A student will be able to:
 
-- Log in using their registered Gmail address through Better Auth's Google provider.
+- Log in using their registered email address and password through Better Auth.
 - View personal and academic profile information.
 - View assigned courses.
 - View assigned teacher information.
@@ -178,7 +178,7 @@ Teachers will manage academic records for their assigned courses.
 
 A teacher will be able to:
 
-- Log in using their registered Gmail address through Better Auth's Google provider.
+- Log in using their registered email address and password through Better Auth.
 - View teacher profile.
 - View assigned courses.
 - View enrolled students for assigned course sections.
@@ -228,7 +228,7 @@ The administrator will be able to:
 - Create and manage teacher accounts.
 - Create HOD accounts.
 - Activate or deactivate accounts.
-- Manage registered Gmail addresses and account status.
+- Manage registered email addresses, temporary-password state, and account status.
 - Perform student bulk import through CSV or Excel.
 - Manage departments.
 - Manage academic programs.
@@ -351,7 +351,7 @@ Required student information may include:
 
 - Full name
 - Registration number
-- Gmail address
+- email address
 - Phone number
 - Department
 - Program
@@ -369,10 +369,10 @@ The administrator can upload a CSV or Excel file containing multiple students.
 The system will:
 
 - Validate registration numbers.
-- Validate Gmail addresses.
+- Validate email addresses.
 - Validate department and program references.
 - Prevent duplicate registration numbers.
-- Prevent duplicate Gmail addresses.
+- Prevent duplicate email addresses.
 - Import valid records.
 - Skip invalid records.
 - Display failed row numbers.
@@ -389,7 +389,7 @@ Teacher information may include:
 
 - Full name
 - Employee ID
-- Gmail address
+- email address
 - Phone number
 - Department
 - Designation
@@ -404,9 +404,9 @@ Teachers will be able to view but not edit this information.
 
 The system will use secure user authentication through Better Auth.
 
-All users will log in using their registered Gmail address through Better Auth's Google social provider.
+All users will log in using their registered email address and password through Better Auth's email/password provider.
 
-Registration-number login, employee-ID login, email/password login, OTP login, magic links, passkeys, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
+Public self-signup, registration-number login, employee-ID login, OTP login, magic links, passkeys, Google, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
 
 Registration numbers and employee IDs will remain profile/academic identifiers only. They must not be accepted as login credentials.
 
@@ -414,27 +414,32 @@ The authenticated Better Auth session will be the source of truth for the user's
 
 ---
 
-# 17. Gmail Account Access
+# 17. Email Account Access
 
 When an account is created:
 
-1. The administrator records the user's official Gmail address.
-2. The user signs in with that Gmail account through the Google provider.
-3. Portal access is granted after Better Auth verifies the Gmail account and the backend resolves the user's role and account status.
+1. The developer-created super admin creates initial admin accounts.
+2. Admins create other role accounts, including teacher, HOD, and student accounts.
+3. Each new user account is created with the default temporary password `@Abc1234`.
+4. The default temporary password is stored only as a secure hash.
+5. The user requests a password reset through the forgot-password flow.
+6. The user sets a new password using the reset-password link.
+7. Portal access is granted after the user signs in through Better Auth and the backend resolves the user's role, account status, and password-reset state.
 
-Temporary passwords are not valid in this app.
+Temporary passwords must not grant normal portal access. They exist only to provision the account and trigger the reset-password onboarding flow.
 
 ---
 
 # 18. Account Recovery
 
-The portal will not manage user passwords.
+The portal will manage password reset through Better Auth. Administrators must not view passwords or assign custom plaintext passwords.
 
 If a user cannot access the portal:
 
-1. The user recovers access to their Gmail account through Google.
-2. The user contacts the administrator only if their registered Gmail address or portal account status must be corrected.
-3. The administrator updates the registered Gmail address or activates/deactivates the portal account as needed.
+1. The user requests a forgot-password email.
+2. The user sets a new password from the reset-password link.
+3. The user contacts the administrator only if their registered email address or portal account status must be corrected.
+4. The administrator updates the registered email address, activates/deactivates the account, or re-triggers the reset-password onboarding state as needed.
 
 ---
 
@@ -443,8 +448,9 @@ If a user cannot access the portal:
 Authentication will use:
 
 - Better Auth
-- Better Auth Google social provider
-- Registered Gmail addresses
+- Better Auth email/password provider
+- Registered email addresses
+- Forgot/reset password flow
 - Secure HTTP-only session cookies
 - Backend session validation
 - Backend role authorization
@@ -1088,7 +1094,7 @@ Student search may support:
 
 - Name
 - Registration number
-- Gmail address
+- email address
 
 Student filters may include:
 
@@ -1103,7 +1109,7 @@ Teacher search may support:
 
 - Name
 - Employee ID
-- Gmail address
+- email address
 
 Teacher filters may include:
 
@@ -1441,7 +1447,7 @@ The API key must never be exposed in the React frontend.
 ## Authentication
 
 - Better Auth
-- Google social provider for Gmail-only sign-in
+- Email/password-only sign-in
 - HTTP-only cookies
 - Backend session validation
 - Role-based authorization
@@ -1605,7 +1611,7 @@ Deployment platforms with temporary file systems should not be used for producti
 The system should include:
 
 - Better Auth authentication
-- Gmail-only Google provider sign-in
+- Email/password-only sign-in
 - HTTP-only cookies
 - Authentication middleware
 - Role-based authorization
@@ -1644,7 +1650,7 @@ The backend must validate incoming data.
 Examples:
 
 - Required fields
-- Valid Gmail format
+- Valid email format
 - Unique registration number
 - Unique employee ID
 - Valid course references
@@ -1714,7 +1720,7 @@ The system should:
 - Prevent duplicate attendance sessions.
 - Prevent duplicate registration numbers.
 - Prevent duplicate employee IDs.
-- Prevent duplicate Gmail accounts.
+- Prevent duplicate email accounts.
 - Preserve approved academic results.
 - Maintain audit logs for important actions.
 - Handle Gemini API failures gracefully.
@@ -1756,7 +1762,7 @@ These include:
 27. No admin AI document upload system.
 28. No CSV or Excel export of academic reports.
 29. Uploaded files use local server storage.
-30. Password reset is handled manually by the administrator.
+30. Password reset is handled through Better Auth forgot/reset password emails.
 
 ---
 
@@ -1813,7 +1819,7 @@ Future versions may add:
 
 ## Authentication
 
-- Gmail-only user login through Better Auth's Google provider
+- Email/password-only user login through Better Auth
 - Role-based authorization
 - Active/inactive accounts
 - Multiple sessions

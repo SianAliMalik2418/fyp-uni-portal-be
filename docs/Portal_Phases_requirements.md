@@ -109,9 +109,9 @@ Users must only be able to access features belonging to their role.
 
 Create a common Better Auth login flow.
 
-All users must log in using their registered Gmail address through Better Auth's Google provider.
+All users must log in using their registered email address and password through Better Auth's email/password provider.
 
-Registration-number login, employee-ID login, temporary-password login, email/password login, OTP login, magic links, passkeys, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
+Public self-signup, registration-number login, employee-ID login, OTP login, magic links, passkeys, Google, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
 
 Registration numbers and employee IDs remain profile/academic identifiers only and must not be accepted as login credentials.
 
@@ -119,18 +119,23 @@ Registration numbers and employee IDs remain profile/academic identifiers only a
 
 Users must be able to securely log out.
 
-### 4. Gmail Account Access
+### 4. Email Account Access
 
-New users should be created with their official Gmail address.
+New users should be created with their official email address.
+
+There must be no public signup page or public signup API flow. A developer-created super admin creates initial admin accounts, and admins create all other user accounts.
 
 ### 5. First Login Access Check
 
 On first login:
 
-1. User signs in with the registered Gmail account through Google.
-2. Better Auth verifies the Google account.
-3. Backend resolves the portal user, role, and account status.
-4. Normal portal access is allowed only for active accounts.
+1. User receives an admin-created account with the default temporary password `@Abc1234`.
+2. The temporary password is stored only as a secure hash.
+3. User requests a password reset through the forgot-password flow.
+4. User sets a new password using the reset-password link.
+5. User signs in with the registered email address and new password.
+6. Backend resolves the portal user, role, and account status.
+7. Normal portal access is allowed only for active accounts that no longer require password reset.
 
 ### 6. Account Status
 
@@ -255,8 +260,9 @@ Phase 1 is complete when:
 - All four roles can log in.
 - Each role sees different navigation.
 - Unauthorized sections cannot be opened.
-- Registration-number, employee-ID, and temporary-password login are not available.
-- Gmail-only Better Auth login works.
+- Public signup, registration-number login, employee-ID login, and OAuth login are not available.
+- Email/password-only Better Auth login works.
+- New users are provisioned by super admin/admin accounts with a hashed default temporary password and must reset it before normal access.
 - Inactive account login is blocked.
 - Users can log out.
 - All future major pages have basic placeholders.
@@ -460,7 +466,7 @@ Student information:
 
 - Full name
 - Registration number
-- Gmail
+- email
 - Phone number
 - Department
 - Program
@@ -487,7 +493,7 @@ Student can view:
 
 - Name
 - Registration number
-- Gmail
+- email
 - Program
 - Batch
 - Semester
@@ -516,7 +522,7 @@ The system should:
 Possible failures:
 
 - Duplicate registration number
-- Duplicate Gmail
+- Duplicate email
 - Missing name
 - Invalid program
 - Invalid section
@@ -533,7 +539,7 @@ The system must prevent duplicate:
 
 - Registration numbers
 - Employee IDs
-- Gmail addresses
+- email addresses
 
 ---
 
@@ -545,7 +551,7 @@ Teacher information:
 
 - Full name
 - Employee ID
-- Gmail
+- email
 - Phone
 - Department
 - Designation
@@ -568,11 +574,13 @@ Each department can have its assigned HOD.
 
 ## 7. Admin Account Access Management
 
-Admin can update a user's registered Gmail address.
+Admin can update a user's registered email address.
 
 Admin can activate or deactivate a user's portal account.
 
-Admin cannot assign temporary passwords because portal authentication is Gmail-only through Better Auth.
+Admin-created users receive the default temporary password `@Abc1234`, stored only as a hash.
+
+Admin must not view existing passwords or reset a user to a custom plaintext password. Password changes must happen through the Better Auth forgot/reset password flow.
 
 ---
 
@@ -1767,7 +1775,7 @@ Search by:
 
 - Name
 - Registration number
-- Gmail
+- email
 
 Filter by:
 
@@ -1786,7 +1794,7 @@ Search by:
 
 - Name
 - Employee ID
-- Gmail
+- email
 
 Filter by:
 
@@ -2140,8 +2148,10 @@ Test complete university workflows instead of isolated pages.
 1. Admin creates student.
 2. Student belongs to program/semester/section.
 3. Student receives assigned courses.
-4. Student signs in with the registered Gmail account through Better Auth's Google provider.
-5. Student reaches the student dashboard after backend role and account-status checks pass.
+4. Student receives an account with the hashed default temporary password.
+5. Student requests and completes password reset.
+6. Student signs in with the registered email address and new password through Better Auth.
+7. Student reaches the student dashboard after backend role and account-status checks pass.
 
 ---
 

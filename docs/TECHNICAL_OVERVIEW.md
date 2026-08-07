@@ -36,7 +36,9 @@ The current `env.ts` schema requires MongoDB, JWT secrets, Gemini, upload, and c
 
 Authentication will use Better Auth as the app-level authentication framework.
 
-The only supported sign-in provider for this app will be Gmail through Better Auth's Google social provider. Backend auth configuration should define only the Google provider and the required Google OAuth credentials. Do not enable email/password login, OTP login, magic links, passkeys, GitHub, Microsoft, or any other OAuth provider unless the project requirements change.
+The only supported sign-in method for this app will be Better Auth email/password login. Backend auth configuration should enable email/password and password reset, and should not enable public self-signup, OTP login, magic links, passkeys, Google, GitHub, Microsoft, or any OAuth provider unless the project requirements change.
+
+Account creation is admin-provisioned. A developer-created super admin creates initial admin accounts, and admins create teacher, HOD, student, and other role accounts. Newly created users receive the default temporary password `@Abc1234`, stored only as a secure hash, and must complete the forgot/reset password flow before normal portal access.
 
 The Better Auth documentation MCP server is configured at the repository root in `mcp.json`, pointing to `https://mcp.better-auth.com/mcp`, so AI-capable development tools can query current Better Auth setup and integration docs.
 
@@ -49,14 +51,14 @@ Better Auth agent skills are also installed under `.agents/skills`:
 - `organization-best-practices`
 - `two-factor-authentication-best-practices`
 
-The current backend still contains earlier custom-auth scaffolding that should be treated as legacy during the Gmail-only Better Auth migration:
+The current backend still contains earlier custom-auth scaffolding that should be treated as legacy during the Better Auth migration:
 
 - `bcryptjs`: Password hashing support.
 - `jsonwebtoken`: JWT access/refresh token support.
 - `src/models/user.model.ts`: User model with role and password-hash fields.
 - `src/validators/auth.validator.ts`: Login request validation.
 
-When the Better Auth migration is implemented, this custom JWT/bcrypt path should be reviewed and either removed or adapted behind Better Auth. Email/password auth should not remain exposed as a user-facing option. Role-based authorization must remain backend-enforced because the requirements require protected API routes, role-based access, data ownership checks, HTTP-only cookies, and restricted AI data access.
+When the Better Auth migration is implemented, this custom JWT/bcrypt path should be reviewed and either removed or adapted behind Better Auth. Better Auth should be the only auth provider exposed to the app. Role-based authorization must remain backend-enforced because the requirements require protected API routes, role-based access, data ownership checks, HTTP-only cookies, password-reset onboarding checks, and restricted AI data access.
 
 ## AI Integration
 

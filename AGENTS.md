@@ -7,6 +7,26 @@
 - Do not use npm, pnpm, or yarn unless the user explicitly asks for it.
 - Keep `bun.lock` as the package lockfile.
 
+## Starting Work
+
+- When the user asks to start something, do not begin implementation immediately.
+- First understand the requirements, propose counterarguments when valid, call out relevant edge cases, and ask any useful questions even if the task seems simple.
+- If the request is fully straightforward and no meaningful question applies, say the agent is ready to kickoff and is waiting for the user's input.
+
+## Project Ownership
+
+- This is a group final-year project divided between three members from `docs/Portal_Phases_requirements.md`: Sian, Tayabba, and Hammad.
+- Follow the phase ownership and responsibility split in the phase plan when choosing implementation scope.
+- After a phase is completed and verified by the user, push only when the user explicitly asks to push.
+- Before committing or pushing phase work, verify that the Git author name/email and the active GitHub account match the respective member responsible for that work. The account should already be logged in; do not assume it is correct without checking.
+
+## Git Workflow
+
+- Divide commits by feature or coherent implementation chunk. Do not dump unrelated or whole-phase work into one large commit.
+- Use industry-standard conventional commit messages, such as `feat:`, `fix:`, `test:`, `refactor:`, `docs:`, `chore:`, and `build:`.
+- Keep each commit focused on one behavior, feature slice, test group, or documentation update.
+- Include relevant tests or verification changes in the same commit as the behavior they validate when practical.
+
 ## Backend Architecture
 
 - Follow the existing MVC layout under `src`.
