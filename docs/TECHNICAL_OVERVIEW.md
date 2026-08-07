@@ -15,15 +15,15 @@ This document summarizes the backend technical choices for the University Portal
 - `cors`: Allows the frontend origin to call the API with credentials.
 - `helmet`: Sets security-related HTTP headers.
 - `express-rate-limit`: Basic request rate limiting for API protection.
-- `morgan`: HTTP request logging.
-- `cookie-parser`: Parses cookies. This is needed for secure HTTP-only refresh/session cookies.
+- `pino` and `pino-http`: Structured application and HTTP request logging.
+- `cookie-parser`: Parses cookies. This is needed for secure HTTP-only session cookies.
 
 ## Configuration and Validation
 
 - `dotenv`: Loads local environment variables.
 - `zod`: Runtime validation for environment variables and request payloads.
 
-The current `env.ts` schema requires MongoDB, JWT secrets, Gemini, upload, and client-origin configuration. Validation happens at startup so missing or invalid operational settings fail early.
+The current `env.ts` schema requires MongoDB, Gemini, upload, auth-cookie, session-TTL, and client-origin configuration. Validation happens at startup so missing or invalid operational settings fail early.
 
 ## Persistence and Files
 
@@ -32,13 +32,11 @@ The current `env.ts` schema requires MongoDB, JWT secrets, Gemini, upload, and c
 - `csv-parse`: CSV ingestion for bulk imports such as students, courses, attendance, or marks.
 - `nanoid`: Collision-resistant IDs for generated references where MongoDB ObjectIds are not suitable.
 
-## Authentication Direction
+## Authentication
 
-Authentication will use Better Auth as the app-level authentication framework.
+The current backend uses custom email/password session authentication.
 
-The only supported sign-in method for this app will be Better Auth email/password login. Backend auth configuration should enable email/password and password reset, and should not enable public self-signup, OTP login, magic links, passkeys, Google, GitHub, Microsoft, or any OAuth provider unless the project requirements change.
-
-Account creation is admin-provisioned. A developer-created super admin creates initial admin accounts, and admins create teacher, HOD, student, and other role accounts. Newly created users receive the default temporary password `@Abc1234`, stored only as a secure hash, and must complete the forgot/reset password flow before normal portal access.
+Account creation is admin-provisioned. A developer-created super admin creates initial admin accounts, and admins create teacher, HOD, student, and other role accounts. Newly created users receive the default temporary password `@Abc1234`, stored only as a secure hash, and must change it before normal portal access.
 
 The Better Auth documentation MCP server is configured at the repository root in `mcp.json`, pointing to `https://mcp.better-auth.com/mcp`, so AI-capable development tools can query current Better Auth setup and integration docs.
 
@@ -51,14 +49,18 @@ Better Auth agent skills are also installed under `.agents/skills`:
 - `organization-best-practices`
 - `two-factor-authentication-best-practices`
 
-The current backend still contains earlier custom-auth scaffolding that should be treated as legacy during the Better Auth migration:
+Current auth implementation:
 
-- `bcryptjs`: Password hashing support.
-- `jsonwebtoken`: JWT access/refresh token support.
-- `src/models/user.model.ts`: User model with role and password-hash fields.
-- `src/validators/auth.validator.ts`: Login request validation.
+- `src/models/user.model.ts`: User model with role, active state, password hash, and temporary-password flags.
+- `src/models/session.model.ts`: Server-side session records with hashed session tokens, expiry, revocation, and last-used tracking.
+- `src/services/auth.service.ts`: Password hashing, password verification, session token hashing, login, logout, session resolution, and password-change logic.
+- `src/controllers/auth.controller.ts`: Cookie-setting login/logout handlers, current-user response, and password-change handler.
+- `src/middlewares/auth.middleware.ts`: Backend session resolution and protected-route enforcement.
+- `src/validators/auth.validator.ts`: Zod validation for login and password-change payloads.
 
-When the Better Auth migration is implemented, this custom JWT/bcrypt path should be reviewed and either removed or adapted behind Better Auth. Better Auth should be the only auth provider exposed to the app. Role-based authorization must remain backend-enforced because the requirements require protected API routes, role-based access, data ownership checks, HTTP-only cookies, password-reset onboarding checks, and restricted AI data access.
+Passwords are hashed with Node `crypto.scryptSync`. Session tokens are random, sent in HTTP-only cookies, and stored in MongoDB only as SHA-256 hashes. Role-based authorization must remain backend-enforced because the requirements require protected API routes, role-based access, data ownership checks, HTTP-only cookies, password-change onboarding checks, and restricted AI data access.
+
+Better Auth docs and local Better Auth skills are available for a future migration, but Better Auth is not the current runtime auth provider.
 
 ## AI Integration
 
