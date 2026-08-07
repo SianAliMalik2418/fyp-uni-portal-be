@@ -1,9 +1,10 @@
 # University Portal with AI Academic Assistant
-## Team-Based Phased Requirements & Build Plan
 
-**Team Members:** Sian, Tayabba, Hammad  
-**Project:** University Portal with AI Academic Assistant  
-**Institution:** NCBA&E  
+## Team-Based Phased Requirements & Build Plan — FE/BE Breakdown
+
+**Team Members:** Sian, Tayabba, Hammad
+**Project:** University Portal with AI Academic Assistant
+**Institution:** NCBA&E
 **Project Type:** Final Year Project
 
 ---
@@ -12,71 +13,77 @@
 
 This document divides the complete FYP into ordered development phases and assigns clear ownership to each team member.
 
+Each functional responsibility is further divided into:
+
+* **FE — Frontend responsibilities**
+* **BE — Backend responsibilities**
+
 The aim is to ensure that:
 
-- Everyone knows exactly what they are responsible for.
-- Features are developed in the correct dependency order.
-- Team members can work in parallel where possible.
-- No member builds features that depend on unfinished data from another member.
-- Each member owns meaningful parts of the final project.
-- Features can be tested phase by phase.
-- The final project can be integrated gradually instead of at the end.
+* Everyone knows exactly what they are responsible for.
+* Each person owns both the frontend and backend of their assigned modules.
+* Features are developed in the correct dependency order.
+* Team members can work in parallel where possible.
+* No member builds features that depend on unfinished data from another member.
+* Each member owns meaningful parts of the final project.
+* Features can be tested phase by phase.
+* The final project can be integrated gradually instead of at the end.
 
-The division is:
+The ownership remains:
 
 ### Sian — Core Academic Management
 
-Sian will mainly own:
+Sian mainly owns:
 
-- Authentication flows
-- User management
-- Academic structure
-- Students
-- Teachers
-- HODs
-- Departments
-- Programs
-- Batches
-- Semesters
-- Sections
-- Courses
-- Course assignments
-- Enrollment
-- Semester promotion
-- Search and filtering
+* Authentication flows
+* User management
+* Academic structure
+* Students
+* Teachers
+* HODs
+* Departments
+* Programs
+* Batches
+* Semesters
+* Sections
+* Courses
+* Course assignments
+* Enrollment
+* Semester promotion
+* Search and filtering
 
 ### Tayabba — Academic Performance Management
 
-Tayabba will mainly own:
+Tayabba mainly owns:
 
-- Attendance
-- Attendance percentages
-- Attendance shortages
-- Assessment structure
-- Quizzes
-- Assignments
-- Marks
-- Grades
-- GPA
-- CGPA
-- Result submission
-- HOD approval
-- Result cards
+* Attendance
+* Attendance percentages
+* Attendance shortages
+* Assessment structure
+* Quizzes
+* Assignments
+* Marks
+* Grades
+* GPA
+* CGPA
+* Result submission
+* HOD approval
+* Result cards
 
 ### Hammad — Student Services & AI
 
-Hammad will mainly own:
+Hammad mainly owns:
 
-- Fee information
-- Timetable
-- Examination date sheet
-- Course materials
-- Announcements
-- Notifications
-- Student dashboard
-- AI knowledge base
-- Gemini chatbot
-- AI student queries
+* Fee information
+* Timetable
+* Examination date sheet
+* Course materials
+* Announcements
+* Notifications
+* Student dashboard
+* AI knowledge base
+* Gemini chatbot
+* AI student queries
 
 ---
 
@@ -90,166 +97,245 @@ This phase should be completed before building actual university modules.
 
 ---
 
-## Sian — Phase 1 Responsibilities
+# Sian — Phase 1 Responsibilities
 
-### 1. User Roles
+## Functional Requirements
 
 The system must recognize four roles:
 
-- Student
-- Teacher
-- HOD
-- Admin
+* Student
+* Teacher
+* HOD
+* Admin
 
-Each user will have one fixed role.
+All roles log in using:
 
-Users must only be able to access features belonging to their role.
+* Email address
+* Password
 
-### 2. Login
+The system must not provide public signup or self-registration. Developers seed the first admin account, and that admin creates student, teacher, HOD, and additional admin accounts from inside the portal.
 
-Create a common Better Auth login flow.
+Registration numbers and employee IDs are academic/administrative identifiers only. They are not login credentials.
 
-All users must log in using their registered email address and password through Better Auth's email/password provider.
+The system must support:
 
-Public self-signup, registration-number login, employee-ID login, OTP login, magic links, passkeys, Google, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
-
-Registration numbers and employee IDs remain profile/academic identifiers only and must not be accepted as login credentials.
-
-### 3. Logout
-
-Users must be able to securely log out.
-
-### 4. Email Account Access
-
-New users should be created with their official email address.
-
-There must be no public signup page or public signup API flow. A developer-created super admin creates initial admin accounts, and admins create all other user accounts.
-
-### 5. First Login Access Check
-
-On first login:
-
-1. User receives an admin-created account with the default temporary password `@Abc1234`.
-2. The temporary password is stored only as a secure hash.
-3. User requests a password reset through the forgot-password flow.
-4. User sets a new password using the reset-password link.
-5. User signs in with the registered email address and new password.
-6. Backend resolves the portal user, role, and account status.
-7. Normal portal access is allowed only for active accounts that no longer require password reset.
-
-### 6. Account Status
-
-Every account must have:
-
-- Active
-- Inactive
-
-Inactive accounts must not be able to log in.
-
-### 7. Role Navigation
-
-Create basic role-specific navigation.
-
-#### Student
-
-Basic areas:
-
-- Dashboard
-- Courses
-- Attendance
-- Results
-- Fees
-- Timetable
-- Exams
-- Materials
-- Announcements
-
-#### Teacher
-
-Basic areas:
-
-- Dashboard
-- Courses
-- Attendance
-- Assessments
-- Results
-- Materials
-
-#### HOD
-
-Basic areas:
-
-- Dashboard
-- Department
-- Courses
-- Teachers
-- Attendance
-- Results
-
-#### Admin
-
-Basic areas:
-
-- Dashboard
-- Students
-- Teachers
-- Departments
-- Programs
-- Academic Structure
-- Courses
-- Fees
-- Timetables
-- Exams
-- Announcements
+* Seeded initial admin account
+* Admin-created user accounts
+* Login
+* Logout
+* Temporary passwords
+* Mandatory first-login password change
+* Active/inactive accounts
+* Fixed role-based access
 
 ---
 
-## Tayabba — Phase 1 Responsibilities
+## Sian — FE
 
-Tayabba does not need complete academic features yet.
+Build the common login screen.
 
-Prepare basic placeholder pages for:
+The login screen should contain:
 
-- Attendance
-- Assessments
-- Marks
-- Results
+* Email field
+* Password field
+* Login button
+* Validation messages
+* Invalid-login state
+* Inactive-account state
+* Loading state
 
-Each page should already respect the user's role.
+Build the mandatory password-change screen.
 
-For example:
+The screen should contain:
 
-Teacher should see:
+* Current temporary password if required
+* New password
+* Confirm password
+* Submit action
+
+Create protected role layouts.
+
+### Student Navigation
+
+* Dashboard
+* Courses
+* Attendance
+* Results
+* Fees
+* Timetable
+* Exams
+* Materials
+* Announcements
+
+### Teacher Navigation
+
+* Dashboard
+* Courses
+* Attendance
+* Assessments
+* Results
+* Materials
+
+### HOD Navigation
+
+* Dashboard
+* Department
+* Courses
+* Teachers
+* Attendance
+* Results
+
+### Admin Navigation
+
+* Dashboard
+* Students
+* Teachers
+* Departments
+* Programs
+* Academic Structure
+* Courses
+* Fees
+* Timetables
+* Exams
+* Announcements
+
+Also implement:
+
+* Logout action
+* Unauthorized-page handling
+* Login redirection based on role
+* Basic account/profile dropdown
+
+---
+
+## Sian — BE
+
+Implement user authentication requirements.
+
+Backend must:
+
+* Accept email and password.
+* Authenticate only existing admin-created or seeded accounts.
+* Avoid public signup/self-registration endpoints.
+* Verify credentials.
+* Check account status.
+* Reject inactive users.
+* Identify user role.
+* Return authenticated session information.
+* Support logout.
+* Support temporary-password state.
+* Require password change before normal portal use where necessary.
+* Allow multiple active user sessions.
+* Restrict protected operations based on role.
+* Provide a seed mechanism for the initial admin account.
+
+Backend should provide current-user information so the frontend knows:
+
+* User ID
+* Name
+* Role
+* Account status
+* Whether password change is required
+
+---
+
+# Tayabba — Phase 1 Responsibilities
+
+Prepare placeholder academic-performance areas.
+
+---
+
+## Tayabba — FE
+
+Create basic placeholder pages for:
+
+* Attendance
+* Assessments
+* Marks
+* Results
+
+Prepare role-specific empty states.
+
+Examples:
+
+Teacher:
 
 > No assigned courses available yet.
 
-Student should see:
+Student:
 
 > No attendance records available yet.
 
-HOD should see:
+HOD:
 
 > No results awaiting approval.
 
+Create base layouts that can later hold:
+
+* Attendance tables
+* Assessment forms
+* Marks tables
+* Result approval tables
+
 ---
 
-## Hammad — Phase 1 Responsibilities
+## Tayabba — BE
 
-Prepare basic placeholder student-service pages:
+No full academic logic is required yet.
 
-- Fees
-- Timetable
-- Exams
-- Course materials
-- Announcements
+Prepare the backend/module boundaries needed later for:
 
-Also prepare:
+* Attendance
+* Assessments
+* Marks
+* Results
 
-- Empty notification area
-- Basic student dashboard layout
-- Placeholder chatbot button
+Temporary endpoints or empty responses may be used where required for frontend integration.
 
-The chatbot does not need to work yet.
+They should still respect role authorization.
+
+---
+
+# Hammad — Phase 1 Responsibilities
+
+Prepare student-service areas.
+
+---
+
+## Hammad — FE
+
+Create placeholder pages for:
+
+* Fees
+* Timetable
+* Exams
+* Course materials
+* Announcements
+
+Also create:
+
+* Empty notification panel
+* Basic student dashboard shell
+* Floating chatbot button
+* Closed chatbot panel state
+
+The chatbot does not need to answer questions yet.
+
+---
+
+## Hammad — BE
+
+Prepare basic module boundaries for:
+
+* Fees
+* Timetable
+* Exams
+* Materials
+* Announcements
+* Notifications
+* AI assistant
+
+No complete business logic is required in this phase.
 
 ---
 
@@ -257,15 +343,13 @@ The chatbot does not need to work yet.
 
 Phase 1 is complete when:
 
-- All four roles can log in.
-- Each role sees different navigation.
-- Unauthorized sections cannot be opened.
-- Public signup, registration-number login, employee-ID login, and OAuth login are not available.
-- Email/password-only Better Auth login works.
-- New users are provisioned by super admin/admin accounts with a hashed default temporary password and must reset it before normal access.
-- Inactive account login is blocked.
-- Users can log out.
-- All future major pages have basic placeholders.
+* All four roles can log in.
+* Each role sees different navigation.
+* Unauthorized sections cannot be opened.
+* Temporary password change works.
+* Inactive account login is blocked.
+* Users can log out.
+* All future major pages have placeholders.
 
 ---
 
@@ -277,158 +361,225 @@ Create the university hierarchy that every later feature depends on.
 
 ---
 
-# Sian — Phase 2 Responsibilities
+# Sian — Phase 2 Owner
 
 Sian owns this complete phase.
 
+---
+
 ## 1. Department Management
 
-Admin can create departments.
+Admin can:
 
-Department fields:
+* Add department
+* View departments
+* Edit department
+* Delete department
 
-- Department name
-- Department code
-- Description
-- Active status
+Fields:
 
-Admin should be able to:
+* Department name
+* Department code
+* Description
+* Active status
 
-- Add department
-- View departments
-- Edit department
-- Delete department
+### Sian — FE
 
-Example:
+Build:
 
-> Computer Science
+* Department listing page
+* Add department form
+* Edit department form
+* Delete confirmation
+* Empty state
+* Loading state
+* Success/error feedback
+
+### Sian — BE
+
+Backend must support:
+
+* Creating department
+* Reading departments
+* Updating department
+* Deleting department
+* Validating required fields
+* Preventing invalid duplicate records where necessary
 
 ---
 
 ## 2. Program Management
 
-Programs belong to departments.
+Fields:
 
-Program information:
+* Program name
+* Program code
+* Department
+* Total semesters
+* Duration
+* Active status
 
-- Program name
-- Program code
-- Department
-- Total semesters
-- Duration
-- Active status
+### Sian — FE
 
-Example:
+Build:
 
-> Department: Computer Science  
-> Program: BS Computer Science
+* Program listing
+* Program form
+* Department selection
+* Edit program
+* Delete program
+* Program details if needed
 
-Admin should be able to:
+### Sian — BE
 
-- Add program
-- View programs
-- Edit program
-- Delete program
+Backend must:
+
+* Create programs
+* Associate programs with departments
+* Retrieve program lists
+* Update programs
+* Delete programs
+* Validate department relationship
 
 ---
 
 ## 3. Batch Management
 
-Students belong to batches.
+Fields:
 
-Example:
+* Batch name
+* Program
+* Starting year
+* Expected graduation year
+* Active status
 
-- Fall 2023
-- Spring 2024
+### Sian — FE
 
-Batch information:
+Build:
 
-- Batch name
-- Program
-- Starting year
-- Expected graduation year
-- Active status
+* Batch list
+* Add batch
+* Edit batch
+* Delete batch
+* Program selector
 
-Admin can:
+### Sian — BE
 
-- Add batch
-- Edit batch
-- Delete batch
-- View batches
+Support:
+
+* Create batch
+* Read batches
+* Update batch
+* Delete batch
+* Associate batch with program
 
 ---
 
 ## 4. Semester Management
 
-The portal will support one active semester at a time.
+The portal supports one active semester at a time.
 
-Admin can:
+### Sian — FE
 
-- Create semesters
-- View semesters
-- Activate semester
-- Close semester
+Build:
 
-Previous semester academic records must remain available.
+* Semester list
+* Add semester
+* Activate semester action
+* Close semester action
+* Active-semester indicator
+* Confirmation before changing active semester
+
+### Sian — BE
+
+Support:
+
+* Create semester
+* Retrieve semesters
+* Set semester active
+* Close semester
+* Ensure only one semester is active at a time
+* Preserve previous-semester records
 
 ---
 
 ## 5. Section Management
 
-Admin can create sections.
-
 Section belongs to:
 
-- Program
-- Batch
-- Semester
+* Program
+* Batch
+* Semester
 
 Fields:
 
-- Section name
-- Program
-- Batch
-- Semester
-- Active status
+* Section name
+* Program
+* Batch
+* Semester
+* Active status
 
-Example:
+### Sian — FE
 
-> BSCS → Batch 2023 → Semester 8 → Section A
+Build:
 
----
+* Section list
+* Add section form
+* Program selector
+* Batch selector
+* Semester selector
+* Edit section
+* Delete section
 
-## Final Academic Hierarchy
+### Sian — BE
 
-The portal should follow:
+Support:
 
-> Department → Program → Batch → Semester → Section
+* Section creation
+* Section retrieval
+* Section updates
+* Section deletion
+* Relationship validation
 
 ---
 
 # Tayabba — Phase 2 Responsibilities
 
-Review the academic structure from the perspective of future attendance and results.
+## Tayabba — FE
 
-Ensure Tayabba can identify:
+Review future academic screens and ensure they can display:
 
-- Which section a student belongs to.
-- Which semester is active.
-- Which program the section belongs to.
+* Program
+* Semester
+* Section
 
-No complete feature development is required yet.
+No major functional pages are required.
+
+## Tayabba — BE
+
+Verify later attendance/results logic can identify:
+
+* Current semester
+* Student section
+* Program relationship
+
+No complete attendance/result implementation yet.
 
 ---
 
 # Hammad — Phase 2 Responsibilities
 
-Review how the academic structure will affect:
+## Hammad — FE
 
-- Timetables
-- Exams
-- Materials
-- AI queries
+Prepare later student-service filters/selectors to understand:
 
-Hammad should ensure later features can identify:
+* Program
+* Semester
+* Section
+
+## Hammad — BE
+
+Verify timetable, exam, and AI modules can reference:
 
 > Program + Semester + Section
 
@@ -436,15 +587,11 @@ Hammad should ensure later features can identify:
 
 ## Phase 2 Completion Criteria
 
-Admin must be able to create an example academic structure such as:
+Admin can create:
 
-> Computer Science  
-> BSCS  
-> Fall 2023  
-> Semester 8  
-> Section A
+> Computer Science → BSCS → Fall 2023 → Semester 8 → Section A
 
-without needing any manual database changes.
+without manual database work.
 
 ---
 
@@ -456,176 +603,227 @@ Populate the portal with actual university users.
 
 ---
 
-# Sian — Phase 3 Responsibilities
+# Sian — Phase 3 Owner
 
 ## 1. Student Creation
 
-Admin can manually create students.
+Student fields:
 
-Student information:
+* Full name
+* Registration number
+* Email
+* Phone number
+* Department
+* Program
+* Batch
+* Semester
+* Section
+* Academic status
+* Account status
+* Profile picture if needed
 
-- Full name
-- Registration number
-- email
-- Phone number
-- Department
-- Program
-- Batch
-- Semester
-- Section
-- Academic status
-- Account status
-- Profile picture if needed
+Academic statuses:
 
-### Academic Statuses
-
-- Active
-- Frozen
-- Repeating
-- Dropped
-- Graduated
+* Active
+* Frozen
+* Repeating
+* Dropped
+* Graduated
 
 ---
 
-## 2. Student Profile
+## Sian — FE
 
-Student can view:
+Build:
 
-- Name
-- Registration number
-- email
-- Program
-- Batch
-- Semester
-- Section
-- Status
+* Student list
+* Add student form
+* Edit student form
+* Student profile/details page
+* Academic-status selector
+* Account-status selector
+* Program/batch/semester/section selectors
+* Search-ready list structure
+* Delete confirmation if included
 
-Student cannot edit their profile.
-
-Admin can edit student information.
+Student-facing profile page should display information in read-only form.
 
 ---
 
-## 3. Bulk Student Import
+## Sian — BE
 
-Admin can upload CSV or Excel containing students.
+Support:
 
-The system should:
+* Student creation
+* Student update
+* Student retrieval
+* Student deletion
+* User account association
+* Academic structure association
+* Academic status
+* Account status
+* Registration-number uniqueness
+* Email uniqueness
 
-- Import valid rows.
-- Skip invalid rows.
-- Show successful count.
-- Show failed count.
-- Show row number of errors.
-- Show reason for failure.
+---
+
+## 2. Bulk Student Import
+
+### Sian — FE
+
+Build:
+
+* Upload file interface
+* Import button
+* Processing state
+* Import result summary
+
+Show:
+
+* Total rows
+* Successful rows
+* Failed rows
+
+Failed row list should show:
+
+* Row number
+* Student information where available
+* Failure reason
+
+---
+
+### Sian — BE
+
+Bulk import must:
+
+* Accept CSV/Excel student data.
+* Validate every row.
+* Import valid rows.
+* Skip invalid rows.
+* Prevent duplicates.
+* Return detailed result summary.
 
 Possible failures:
 
-- Duplicate registration number
-- Duplicate email
-- Missing name
-- Invalid program
-- Invalid section
-- Invalid semester
-- Missing required information
-
-Valid students should still be imported even when other rows fail.
+* Duplicate registration
+* Duplicate email
+* Missing name
+* Invalid program
+* Invalid semester
+* Invalid section
+* Missing required fields
 
 ---
 
-## 4. Duplicate Prevention
+## 3. Teacher Management
 
-The system must prevent duplicate:
+### Sian — FE
 
-- Registration numbers
-- Employee IDs
-- email addresses
+Build:
 
----
+* Teacher list
+* Add teacher
+* Edit teacher
+* Teacher profile
+* Department selector
+* Designation field
+* Account-status control
 
-## 5. Teacher Management
+Teacher-facing profile remains read-only.
 
-Admin can create teachers.
+### Sian — BE
 
-Teacher information:
+Support:
 
-- Full name
-- Employee ID
-- email
-- Phone
-- Department
-- Designation
-- Account status
-- Profile picture if required
-
-Teacher can view the profile but cannot edit it.
-
----
-
-## 6. HOD Management
-
-Admin can create or assign an HOD.
-
-The HOD should belong to a department.
-
-Each department can have its assigned HOD.
+* Teacher creation
+* Employee ID uniqueness
+* Email uniqueness
+* Department association
+* Teacher update
+* Teacher retrieval
+* Teacher deletion
+* Account status
 
 ---
 
-## 7. Admin Account Access Management
+## 4. HOD Management
 
-Admin can update a user's registered email address.
+### Sian — FE
 
-Admin can activate or deactivate a user's portal account.
+Allow admin to:
 
-Admin-created users receive the default temporary password `@Abc1234`, stored only as a hash.
+* Create HOD account or assign HOD role
+* Select department
+* View assigned HOD
 
-Admin must not view existing passwords or reset a user to a custom plaintext password. Password changes must happen through the Better Auth forgot/reset password flow.
+### Sian — BE
+
+Support:
+
+* HOD account
+* Department association
+* HOD role permissions
+* HOD retrieval by department
+
+---
+
+## 5. Admin Password Reset
+
+### Sian — FE
+
+Admin should have a reset-password action on user accounts.
+
+Show confirmation and success state.
+
+### Sian — BE
+
+Backend should:
+
+* Reset user password.
+* Mark new password as temporary.
+* Require password change at next login.
 
 ---
 
 # Tayabba — Phase 3 Responsibilities
 
-Prepare academic-performance pages to work with real students.
+## Tayabba — FE
 
-For example:
+Prepare attendance and result tables to use real student information:
 
-Teacher attendance page should later be able to display:
+* Name
+* Registration number
+* Semester
+* Section
 
-- Registration number
-- Student name
+## Tayabba — BE
 
-Result pages should later be able to identify:
-
-- Student
-- Program
-- Semester
-- Section
+Ensure future academic requests can consume student identifiers and academic relationships provided by Sian's modules.
 
 ---
 
 # Hammad — Phase 3 Responsibilities
 
-Prepare student services to use actual logged-in student information.
+## Hammad — FE
 
-For example:
+Connect placeholder student pages to the authenticated student's identity.
 
-- Student fee page identifies current student.
-- Student timetable identifies program/semester/section.
-- Chatbot identifies the currently logged-in student.
+## Hammad — BE
+
+Prepare service modules to retrieve the logged-in student's:
+
+* Program
+* Semester
+* Section
+* User ID
+
+for future fee/timetable/AI features.
 
 ---
 
 ## Phase 3 Completion Criteria
 
-The portal should contain:
-
-- Admin
-- HOD
-- Teachers
-- Students
-
-Each should be able to log in and see their own information.
+Admin, HOD, teachers, and students exist and can log in.
 
 ---
 
@@ -637,130 +835,190 @@ Connect courses, students, teachers, sections, and semesters.
 
 ---
 
-# Sian — Phase 4 Responsibilities
+# Sian — Phase 4 Owner
 
-## 1. Course Management
+## Course Management
 
-Admin can create courses.
+Fields:
 
-Course information:
+* Course code
+* Course title
+* Credit hours
+* Department
+* Program
+* Semester
+* Description
+* Active status
 
-- Course code
-- Course title
-- Credit hours
-- Department
-- Program
-- Semester
-- Description
-- Active status
+### Sian — FE
+
+Build:
+
+* Course list
+* Add course
+* Edit course
+* Delete course
+* Course details
+* Program/semester selectors
+
+### Sian — BE
+
+Support:
+
+* Course creation
+* Course retrieval
+* Course update
+* Course deletion
+* Academic relationship validation
 
 ---
 
-## 2. Course Assignment
+## Course Assignment
 
 Admin assigns courses to:
 
 > Program → Semester → Section
 
-Example:
+### Sian — FE
 
-> BSCS → Semester 8 → Section A → Computer Networks
+Build course-assignment page.
 
----
+Admin should:
 
-## 3. Automatic Student Enrollment
+* Choose program
+* Choose semester
+* Choose section
+* Select courses
+* Save assignment
 
-Students must not select courses.
+Display currently assigned courses.
 
-When courses are assigned to a section:
+### Sian — BE
 
-- All active students in that section automatically receive those courses.
+Support:
 
-If a new student joins that section later:
-
-- The student automatically receives currently assigned courses.
-
----
-
-## 4. Teacher Assignment
-
-Each course section must have one teacher.
-
-Admin or HOD can assign the teacher.
-
-Example:
-
-> Computer Networks  
-> BSCS Semester 8 Section A  
-> Teacher: Mr. XYZ
+* Assigning courses to section
+* Retrieving section course set
+* Updating course assignments
 
 ---
 
-## 5. Student Course View
+## Automatic Enrollment
 
-Student sees:
+### Sian — FE
 
-- Course code
-- Course name
-- Credit hours
-- Teacher
+No complex student action is required.
+
+Student course page should automatically display assigned courses.
+
+### Sian — BE
+
+When courses are assigned:
+
+* Enroll all active students in the section.
+
+When a new student joins:
+
+* Automatically create required course enrollments.
+
+Students must never self-enroll.
 
 ---
 
-## 6. Teacher Course View
+## Teacher Assignment
 
-Teacher sees:
+### Sian — FE
 
-- Assigned courses
-- Sections
-- Number of enrolled students
+Admin/HOD can:
+
+* Open course offering
+* Select teacher
+* Change assigned teacher
+
+Teacher list should be limited appropriately.
+
+### Sian — BE
+
+Support:
+
+* One teacher per course section
+* Teacher assignment
+* Teacher reassignment
+* Retrieval of teacher course sections
 
 ---
 
-## 7. HOD Course View
+## Student Course View
 
-HOD can see:
+### Sian — FE
 
-- Department courses
-- Assigned teachers
-- Sections
+Show:
+
+* Course code
+* Course title
+* Credit hours
+* Teacher
+
+### Sian — BE
+
+Return only courses assigned to authenticated student.
+
+---
+
+## Teacher Course View
+
+### Sian — FE
+
+Show:
+
+* Assigned courses
+* Section
+* Student count
+
+### Sian — BE
+
+Return only teacher's assigned offerings.
 
 ---
 
 # Tayabba — Phase 4 Responsibilities
 
-Connect academic modules to the course assignments.
+## Tayabba — FE
 
-Attendance must know:
+Attendance and marks screens should now use real course offerings.
 
-> Which students belong to this teacher's course?
+Teacher should select only assigned courses.
 
-Results must know:
+## Tayabba — BE
 
-> Which students belong to this course section?
+Academic modules must validate:
 
-Teachers must not be able to enter attendance or marks for unassigned courses.
+* Teacher owns course section.
+* Student belongs to enrollment.
+* Unauthorized course access is rejected.
 
 ---
 
 # Hammad — Phase 4 Responsibilities
 
-Connect student services to enrolled courses.
+## Hammad — FE
 
-Course materials will later use these course enrollments.
+Course materials and AI placeholders can now show real student courses.
 
-AI will later use:
+## Hammad — BE
 
-- Student courses
-- Assigned teachers
+Prepare access to:
+
+* Student enrolled courses
+* Assigned teacher information
 
 ---
 
 ## Phase 4 Completion Criteria
 
-A logged-in student must see their assigned courses.
+Student sees assigned courses.
 
-A teacher must see only their assigned course sections.
+Teacher sees only assigned course sections.
 
 ---
 
@@ -774,141 +1032,137 @@ Complete the first major teacher-to-student academic workflow.
 
 # Tayabba — Phase 5 Owner
 
-Tayabba owns this phase.
+## Tayabba — FE
 
-## 1. Attendance Creation
+### Attendance Creation Screen
 
-Teacher selects:
+Teacher:
 
-- Assigned course
-- Date
+1. Selects assigned course.
+2. Selects date.
+3. Sees enrolled students.
 
-Then sees all enrolled students.
+Student table displays:
 
----
+* Registration number
+* Name
+* Status selector
 
-## 2. Attendance Statuses
+Statuses:
 
-For each student:
+* Present
+* Absent
+* Leave
 
-- Present
-- Absent
-- Leave
+Provide:
 
----
-
-## 3. One Attendance Session Per Date
-
-Only one attendance session may exist for the same:
-
-> Course section + date
-
-Duplicate attendance sessions should not be created.
+* Save action
+* Loading state
+* Validation feedback
+* Success confirmation
 
 ---
 
-## 4. Attendance Editing
+### Attendance History
 
-Teacher can edit previous attendance during the active semester.
+Teacher sees previous attendance sessions.
 
----
+Display:
 
-## 5. Attendance History
+* Date
+* Course
+* Student count
 
-Teacher can view previous attendance dates.
+Opening a session shows individual attendance records.
 
-Selecting a date should show student statuses.
-
----
-
-## 6. Attendance Percentage
-
-Calculate:
-
-> Present Classes / Total Conducted Classes × 100
-
-Absent and Leave both reduce attendance percentage.
+Teacher can edit previous attendance.
 
 ---
 
-## 7. Attendance Requirement
+### Student Attendance Page
 
-Admin should be able to set the minimum attendance requirement.
+For every course show:
 
-Example:
-
-> 75%
-
----
-
-## 8. Student Attendance Page
-
-For each course student sees:
-
-- Total classes
-- Present
-- Absent
-- Leave
-- Attendance percentage
-- Required attendance
+* Total classes
+* Present
+* Absent
+* Leave
+* Attendance percentage
+* Required percentage
+* Warning state
 
 ---
 
-## 9. Attendance Shortage
+### HOD Attendance Screen
 
-If attendance falls below the configured percentage:
+Show:
 
-- Show warning
-- Mark affected course
-- Show current percentage
-- Show required percentage
+* Students below attendance threshold
+* Course
+* Student
+* Percentage
+* Required percentage
 
 ---
 
-## 10. HOD Attendance View
+## Tayabba — BE
 
-HOD can see:
+Implement:
 
-- Department attendance summary
-- Students below attendance threshold
-- Course
-- Student
-- Current percentage
+* Create attendance session
+* One session per course section/date
+* Retrieve enrolled students
+* Save individual attendance statuses
+* Edit attendance
+* Retrieve attendance history
+* Retrieve student course attendance
+* Calculate totals
+* Calculate percentages
+* Detect attendance shortages
+* Retrieve low-attendance students for HOD
+
+Teachers must only manage their assigned course sections.
 
 ---
 
 # Sian — Phase 5 Responsibilities
 
-Provide Tayabba access to:
+## Sian — FE
 
-- Student enrollments
-- Course sections
-- Assigned teachers
-- Active semester
+Add admin setting for minimum attendance percentage.
 
-Admin should also be able to configure the attendance threshold.
+## Sian — BE
+
+Store and expose attendance threshold configuration.
+
+Provide:
+
+* Course sections
+* Enrollments
+* Active semester
+* Teacher assignments
 
 ---
 
 # Hammad — Phase 5 Responsibilities
 
-Prepare student dashboard attendance cards.
+## Hammad — FE
 
-Examples:
+Student dashboard should contain:
 
-- Overall attendance summary
-- Courses below threshold
-- Recent attendance update
+* Attendance summary
+* Low-attendance warnings
+* Quick link to attendance page
 
-No AI integration yet.
+## Hammad — BE
+
+Consume attendance summary from Tayabba's module for dashboard display.
 
 ---
 
 ## Phase 5 Completion Criteria
 
-Complete workflow:
-
-> Teacher marks attendance → percentage calculates → student sees attendance → shortage warning appears → HOD can monitor low attendance.
+Teacher marks attendance → percentage calculates → student sees it → HOD sees shortages.
 
 ---
 
@@ -922,131 +1176,120 @@ Allow teachers to enter complete semester assessment information.
 
 # Tayabba — Phase 6 Owner
 
-## 1. Standard Assessment Structure
+## Tayabba — FE
 
-Admin defines common categories.
+### Assessment Category View
 
-Example:
+Teacher should see university-defined categories:
 
-- Assignments
-- Quizzes
-- Midterm
-- Final
+* Assignments
+* Quizzes
+* Midterm
+* Final
 
-Each has a percentage.
-
-Total must equal:
-
-> 100%
-
----
-
-## 2. Multiple Quizzes
+### Assessment Creation
 
 Teacher can create:
 
-- Quiz 1
-- Quiz 2
-- Quiz 3
+* Quiz 1
+* Quiz 2
+* Assignment 1
+* Assignment 2
+* etc.
 
-Each can have its own maximum marks.
+Fields:
 
----
+* Assessment name
+* Category
+* Maximum marks
 
-## 3. Multiple Assignments
+### Marks Entry
 
-Teacher can create:
+Build spreadsheet-style table containing:
 
-- Assignment 1
-- Assignment 2
-- Assignment 3
+* Registration number
+* Student
+* Numeric marks/status
 
-Each can have its own maximum marks.
+Supported status values:
 
----
+* Absent
+* Exempted
+* Result Withheld
 
-## 4. Midterm
+Provide:
 
-Teacher enters midterm marks.
-
----
-
-## 5. Final Examination
-
-Teacher enters final marks.
-
----
-
-## 6. Spreadsheet-Style Marks Entry
-
-Teacher sees all students together.
-
-Example:
-
-| Student | Registration | Marks |
-|---|---|---|
-| Student A | BSCS-001 | 8 |
-| Student B | BSCS-002 | 7 |
+* Save draft
+* Validation errors
+* Missing marks indication
+* Maximum marks display
 
 ---
 
-## 7. Marks Validation
+## Tayabba — BE
 
-Marks cannot exceed maximum marks.
+Support:
 
----
+* Assessment creation within allowed categories
+* Maximum marks
+* Multiple assessments in categories
+* Marks creation
+* Marks updates
+* Draft saving
+* Special statuses
+* Marks validation
+* Category aggregation
+* Weighted calculation
 
-## 8. Special Statuses
-
-Instead of numeric marks, teacher can select:
-
-- Absent
-- Exempted
-- Result Withheld
-
----
-
-## 9. Draft Marks
-
-Teacher can save incomplete marks without submitting results.
-
----
-
-## 10. Assessment Calculation
-
-The system combines multiple assessments inside each category.
-
-Example:
-
-Quiz category = 10%
-
-Quiz 1 and Quiz 2 should combine into that 10%.
+Reject marks above maximum.
 
 ---
 
 # Sian — Phase 6 Responsibilities
 
-Admin must have access to configure:
+## Sian — FE
 
-- Assessment categories
-- Weightages
+Admin gets assessment-structure configuration page.
+
+Admin sets:
+
+* Categories
+* Weightages
+
+Display total percentage.
+
+Prevent saving invalid configuration.
+
+## Sian — BE
+
+Store university-wide assessment structure.
+
+Ensure configured total equals 100%.
+
+Expose active structure to Tayabba's module.
 
 ---
 
 # Hammad — Phase 6 Responsibilities
 
-Prepare student dashboard area for:
+## Hammad — FE
 
-- Recent marks
-- Academic performance summary
+Prepare student dashboard components for:
 
-Students must not see marks that have not yet been officially published.
+* Recent marks
+* Academic summary
+
+Do not display unpublished results.
+
+## Hammad — BE
+
+Consume only permitted published academic information.
 
 ---
 
 ## Phase 6 Completion Criteria
 
-Teacher can completely enter marks for one course and save them as draft.
+Teacher can create assessments, enter marks, and save drafts.
 
 ---
 
@@ -1054,144 +1297,149 @@ Teacher can completely enter marks for one course and save them as draft.
 
 ## Objective
 
-Turn assessment marks into official student results.
+Turn assessment marks into official results.
 
 ---
 
 # Tayabba — Phase 7 Owner
 
-## 1. Grading Scale
+## Tayabba — FE
 
-Admin defines:
+### Teacher Result Review
 
-- Percentage range
-- Letter grade
-- Grade point
+Display:
 
-Example:
-
-| Percentage | Grade | Point |
-|---|---|---|
-| 85–100 | A | 4.0 |
-| 80–84 | A- | 3.7 |
-
----
-
-## 2. Automatic Result Calculation
-
-System calculates:
-
-- Weighted total
-- Percentage
-- Letter grade
-- Grade point
-
----
-
-## 3. GPA Calculation
-
-Calculate semester GPA using:
-
-- Course grade points
-- Credit hours
-
----
-
-## 4. CGPA
-
-Calculate cumulative GPA using completed results.
-
----
-
-## 5. Teacher Result Submission
+* Student
+* Assessment totals
+* Final percentage
+* Grade
+* Grade point
 
 Teacher can:
 
-- Review complete course result
-- Submit result
+* Review
+* Submit result
 
-After submission:
+Show submission status:
 
-> Pending HOD Approval
-
----
-
-## 6. HOD Review
-
-HOD sees:
-
-- Course
-- Teacher
-- Students
-- Marks
-- Grades
-- Result summary
+* Draft
+* Pending HOD Approval
+* Returned
+* Approved
 
 ---
 
-## 7. HOD Approval
+### HOD Result Review
 
-HOD can:
+Display:
 
-- Approve complete course result
-- Return complete result with comments
+* Course
+* Section
+* Teacher
+* Students
+* Marks
+* Grades
+* Summary statistics
 
-HOD does not approve students individually.
+Actions:
 
----
-
-## 8. Returned Result
-
-Teacher sees HOD comment.
-
-Teacher corrects marks.
-
-Teacher resubmits.
+* Approve
+* Return with comments
 
 ---
 
-## 9. Approved Result
+### Returned Result
 
-After approval:
+Teacher sees:
 
-- Students can see result.
-- Teacher cannot normally edit it.
-- Result becomes locked.
+* HOD comments
+* Returned status
+* Ability to correct records
 
 ---
 
-## 10. Result Reopening
+### Approved Student Result
 
-HOD and Admin can reopen approved result.
+Student can view published result.
 
-They must provide a reason.
+---
+
+### Result Reopening
+
+HOD/Admin sees:
+
+* Reopen action
+* Reason field
+* Confirmation
+
+---
+
+## Tayabba — BE
+
+Implement:
+
+* Weighted final calculations
+* Letter-grade mapping
+* Grade points
+* GPA calculation
+* CGPA calculation
+* Result submission
+* Result state management
+* HOD approval
+* Return with comments
+* Result locking
+* Result reopening
+* Reason storage
+* Published result retrieval
+
+Only approved results should become student-visible.
 
 ---
 
 # Sian — Phase 7 Responsibilities
 
-Ensure:
+## Sian — FE
 
-- Admin can configure grading scale.
-- HOD permissions work correctly.
-- Course and student relationships remain valid.
+Admin grading-scale configuration page.
+
+Fields:
+
+* Minimum percentage
+* Maximum percentage
+* Letter grade
+* Grade point
+
+## Sian — BE
+
+Store grading scale.
+
+Validate:
+
+* Percentage ranges
+* Grade-point data
+* HOD/Admin permissions for reopening results
 
 ---
 
 # Hammad — Phase 7 Responsibilities
 
-Prepare:
+## Hammad — FE
 
-- Student results summary on dashboard.
-- Result published notification.
+Student dashboard shows:
+
+* Latest published result
+* GPA
+* Result notification
+
+## Hammad — BE
+
+Notification generation/consumption for published result.
 
 ---
 
 ## Phase 7 Completion Criteria
 
-Full flow must work:
-
-> Teacher enters marks → submits → HOD returns/approves → student sees approved result.
+Teacher submits → HOD approves/returns → student sees only approved result.
 
 ---
 
@@ -1205,49 +1453,76 @@ Provide downloadable semester result output.
 
 # Tayabba — Phase 8 Owner
 
-Student result card should contain:
+## Tayabba — FE
 
-- Student name
-- Registration number
-- Program
-- Semester
-- Course codes
-- Course titles
-- Credit hours
-- Marks
-- Grades
-- Grade points
-- Semester GPA
+Create result-card view.
 
-Student can:
+Include:
 
-- View result card
-- Download result card
+* Student name
+* Registration number
+* Program
+* Semester
+* Course codes
+* Course titles
+* Credit hours
+* Marks
+* Grades
+* Grade points
+* Semester GPA
 
-Only approved results should appear.
+Provide:
 
-No official transcript is required.
+* View result card
+* Download result card
+
+Only approved results appear.
+
+---
+
+## Tayabba — BE
+
+Backend must:
+
+* Retrieve complete approved semester result.
+* Include student academic details.
+* Include courses and credit hours.
+* Include GPA.
+* Prevent generating cards for unpublished results.
 
 ---
 
 # Sian — Phase 8 Responsibilities
 
-Ensure student identity and academic information appear correctly.
+## Sian — BE
+
+Provide accurate:
+
+* Student identity
+* Program
+* Semester
+* Course metadata
+
+## Sian — FE
+
+No major separate screen required beyond ensuring profile data displays correctly.
 
 ---
 
 # Hammad — Phase 8 Responsibilities
 
-Ensure result card is accessible from:
+## Hammad — FE
 
-- Student dashboard
-- Results area
+Link result card from:
+
+* Student dashboard
+* Results page
 
 ---
 
 ## Phase 8 Completion Criteria
 
-Student can download a complete semester result card.
+Student downloads complete approved semester result card.
 
 ---
 
@@ -1261,66 +1536,73 @@ Allow students to check fee information.
 
 # Hammad — Phase 9 Owner
 
-## Admin Fee Entry
+## Hammad — FE
 
-Admin manually enters for each student:
+### Admin Fee Page
 
-- Total semester fee
-- Paid amount
-- Remaining amount
-- Due date
-- Payment date
-- Notes
+Admin should:
+
+* Find/select student.
+* Enter total semester fee.
+* Enter paid amount.
+* Enter due date.
+* Enter payment date.
+* Enter notes.
+
+Display calculated:
+
+* Remaining amount
+* Fee status
+
+### Student Fee Page
+
+Display:
+
+* Total fee
+* Paid
+* Remaining
+* Due date
+* Payment status
+* Payment information
+
+No payment actions.
 
 ---
 
-## Fee Status
+## Hammad — BE
 
-Possible status:
+Support:
 
-- Paid
-- Partially Paid
-- Unpaid
-- Overdue
-
----
-
-## Student Fee Page
-
-Student sees:
-
-- Total fee
-- Paid amount
-- Remaining amount
-- Due date
-- Status
-- Payment information
-
-Students cannot:
-
-- Make payment
-- Edit fee
-- Upload payment proof
+* Create/update student fee record
+* Retrieve student fee
+* Calculate remaining amount
+* Determine fee status
+* Restrict modification to Admin
+* Restrict student access to own fee information
 
 ---
 
 # Sian — Phase 9 Responsibilities
 
-Provide student records needed for fee assignment.
+## Sian — BE
+
+Provide student lookup and identity relationships.
+
+## Sian — FE
+
+Provide reusable student selector/search if required by fee administration.
 
 ---
 
 # Tayabba — Phase 9 Responsibilities
 
-No major work required.
-
-Assist with testing fee status display where needed.
+Test fee information and ensure it does not interfere with academic workflows.
 
 ---
 
 ## Phase 9 Completion Criteria
 
-Admin updates fee → student logs in → sees correct fee information.
+Admin updates fee → correct student sees current fee status.
 
 ---
 
@@ -1328,76 +1610,104 @@ Admin updates fee → student logs in → sees correct fee information.
 
 ## Objective
 
-Provide simple scheduling information without building scheduling logic.
+Provide scheduling information without timetable-generation logic.
 
 ---
 
 # Hammad — Phase 10 Owner
 
-## Timetable
+## Timetable — FE
 
-Admin uploads timetable image.
+Admin page should allow:
 
-Assign timetable to:
+* Select program
+* Select semester
+* Select section
+* Upload timetable image
+* Replace timetable image
+* View existing timetable
 
-- Program
-- Semester
-- Section
+Student page:
 
-Student sees only timetable for their class.
+* Display current section timetable.
 
-Teacher may see relevant section timetable.
+Teacher page:
 
-Admin can replace timetable image.
-
-No:
-
-- Timetable builder
-- Automatic generation
-- Clash detection
-- Rescheduling engine
+* Display relevant timetables.
 
 ---
 
-## Exam Date Sheet
+## Timetable — BE
 
-Admin manually adds:
+Support:
 
-- Exam type
-- Course
-- Program
-- Semester
-- Section
-- Date
-- Start time
-- End time
-- Room
-- Instructions
+* Timetable image upload
+* Program association
+* Semester association
+* Section association
+* Timetable replacement
+* Student-specific retrieval
+* Teacher-relevant retrieval
 
-Student sees exams belonging to their courses.
+---
+
+## Exam Date Sheet — FE
+
+Admin can create exam entry with:
+
+* Exam type
+* Course
+* Program
+* Semester
+* Section
+* Date
+* Start time
+* End time
+* Room
+* Instructions
+
+Student sees relevant exams.
 
 Teacher sees relevant exams.
 
 ---
 
+## Exam Date Sheet — BE
+
+Support:
+
+* Create exam record
+* Update exam
+* Delete exam
+* Retrieve exams by student enrollment
+* Retrieve exams by teacher course assignment
+
+No automatic scheduling logic.
+
+---
+
 # Sian — Phase 10 Responsibilities
 
-Provide program, semester, section, course relationships.
+Provide reusable:
+
+* Program
+* Semester
+* Section
+* Course data
+
+on both FE selectors and BE relationships.
 
 ---
 
 # Tayabba — Phase 10 Responsibilities
 
-Ensure exam display can later connect properly with course results if required.
+Ensure exam-course relationships remain compatible with academic modules.
 
 ---
 
 ## Phase 10 Completion Criteria
 
-Student can view:
-
-- Their timetable image
-- Their examination dates
+Correct student sees correct timetable and exams.
 
 ---
 
@@ -1411,45 +1721,54 @@ Allow teachers to share academic resources.
 
 # Hammad — Phase 11 Owner
 
-Teacher selects assigned course.
+## Hammad — FE
 
-Teacher can add:
+Teacher materials page:
 
-- Title
-- Description
-- File
-- External link
+* Select assigned course
+* Add material
+* Add title
+* Add description
+* Upload file
+* Add external link
+* View current materials
+* Remove material
 
-Supported files:
+Student page:
 
-- PDF
-- DOCX
-- PPTX
-- XLSX
-- JPG
-- JPEG
-- PNG
+* Select/view course materials
+* Display simple list
+* Download/view file
+* Open external link
 
-Student sees simple file list.
+Supported:
 
-Each item shows:
+* PDF
+* DOCX
+* PPTX
+* XLSX
+* JPG
+* JPEG
+* PNG
 
-- Title
-- Description
-- Teacher
-- Upload date
-- Download/view option
+---
 
-Only enrolled students can access course materials.
+## Hammad — BE
 
-Teacher only manages materials for assigned courses.
+Support:
 
-No:
+* Material file upload
+* File metadata storage
+* External links
+* Course association
+* Teacher ownership verification
+* Student enrollment verification
+* File retrieval/download access
+* Material deletion
 
-- Assignment submission
-- Online quizzes
-- Discussion boards
-- Full LMS
+Teacher must only upload for assigned courses.
+
+Student must only access enrolled-course material.
 
 ---
 
@@ -1457,22 +1776,20 @@ No:
 
 Provide:
 
-- Course enrollment information
-- Teacher course assignments
+* Enrollment checks
+* Teacher course assignments
 
 ---
 
 # Tayabba — Phase 11 Responsibilities
 
-No major development required.
-
-Assist with permission testing.
+Permission and integration testing.
 
 ---
 
 ## Phase 11 Completion Criteria
 
-Teacher uploads a file → enrolled student sees and downloads it.
+Teacher uploads material → enrolled student accesses it.
 
 ---
 
@@ -1486,69 +1803,95 @@ Add internal university communication.
 
 # Hammad — Phase 12 Owner
 
-## Global Announcements
+## Announcements — FE
 
-Admin can create announcement.
+Admin can:
+
+* Create announcement
+* Edit announcement
+* Delete announcement
+* Pin announcement
+* Set expiry
 
 Fields:
 
-- Title
-- Description
-- Publish date
-- Expiry date
-- Attachment if needed
-- Pinned status
-- Active status
+* Title
+* Description
+* Publish date
+* Expiry date
+* Attachment
+* Pinned status
+* Active status
 
-Announcements are global.
-
-All active portal users see them.
-
-No targeted department announcements.
+All users get announcement page/view.
 
 ---
 
-## Notifications
+## Announcements — BE
 
-Users receive notifications for events such as:
+Support:
 
-- Result published
-- Result returned
-- New material
-- Attendance update
-- Timetable update
-- New announcement
-- Result approval
+* Create
+* Retrieve
+* Update
+* Delete
+* Active/expired filtering
+* Pinned announcements
+* Optional attachment
 
-Users can:
+---
 
-- View notification
-- See unread count
-- Mark as read
-- Mark all as read
+## Notifications — FE
+
+Build:
+
+* Notification icon
+* Unread count
+* Notification list
+* Read/unread styling
+* Mark as read
+* Mark all as read
+
+---
+
+## Notifications — BE
+
+Support:
+
+* Create notification
+* Retrieve user notifications
+* Read/unread state
+* Mark one read
+* Mark all read
+
+Notifications can come from other modules.
 
 ---
 
 # Sian — Phase 12 Responsibilities
 
-Generate notifications from relevant account/course events where needed.
+## Sian — BE
+
+Trigger notifications for relevant core-account/course events where applicable.
 
 ---
 
 # Tayabba — Phase 12 Responsibilities
 
-Trigger academic notifications such as:
+## Tayabba — BE
 
-- Result returned
-- Result approved
-- Result published
-- Attendance updated
+Trigger:
+
+* Attendance updated
+* Result returned
+* Result approved
+* Result published
 
 ---
 
 ## Phase 12 Completion Criteria
 
-Users receive and manage in-app notifications.
+Users receive relevant in-app notifications and manage read state.
 
 ---
 
@@ -1562,71 +1905,89 @@ Turn the portal into a useful day-to-day experience.
 
 # Hammad — Student Dashboard Owner
 
-Student dashboard should show:
+## Hammad — FE
 
-- Student basic information
-- Current semester
-- Courses
-- Attendance percentages
-- Attendance shortage warnings
-- Recent marks
-- GPA
-- Fee outstanding
-- Recent materials
-- Announcements
-- Notifications
-- AI chatbot button
+Display:
+
+* Student information
+* Current semester
+* Courses
+* Attendance percentages
+* Attendance shortage
+* Recent marks
+* GPA
+* Fee balance
+* Recent materials
+* Announcements
+* Notifications
+* AI chatbot button
+
+## Hammad — BE
+
+Create/retrieve combined student dashboard data from the relevant owned/shared modules.
 
 ---
 
-# Tayabba — Teacher and HOD Dashboard Owner
+# Tayabba — Teacher/HOD Dashboard Owner
 
-## Teacher Dashboard
+## Tayabba — FE
 
-Show:
-
-- Assigned courses
-- Sections
-- Student counts
-- Attendance activity
-- Marks progress
-- Draft results
-- Pending result submissions
-- Returned results
-
-## HOD Dashboard
+### Teacher
 
 Show:
 
-- Department students
-- Teachers
-- Courses
-- Low-attendance students
-- Pending result approvals
-- Recently approved results
-- Academic summary
+* Assigned courses
+* Sections
+* Student counts
+* Attendance activity
+* Marks progress
+* Draft results
+* Pending submissions
+* Returned results
+
+### HOD
+
+Show:
+
+* Students
+* Teachers
+* Courses
+* Low attendance
+* Pending approvals
+* Recently approved results
+* Academic summary
+
+## Tayabba — BE
+
+Provide aggregated academic-performance dashboard information.
 
 ---
 
 # Sian — Admin Dashboard Owner
 
+## Sian — FE
+
 Show:
 
-- Total students
-- Total teachers
-- Departments
-- Programs
-- Current semester
-- Sections
-- Courses
-- Recent student imports
-- Recent academic activity
+* Total students
+* Total teachers
+* Departments
+* Programs
+* Current semester
+* Sections
+* Courses
+* Recent imports
+* Recent administrative activity
+
+## Sian — BE
+
+Provide admin summary counts and current academic-structure information.
 
 ---
 
 ## Phase 13 Completion Criteria
 
-Each role sees useful information immediately after login.
+Each role sees a useful dashboard with real system information.
 
 ---
 
@@ -1634,65 +1995,85 @@ Each role sees useful information immediately after login.
 
 ## Objective
 
-Allow the portal to continue into the next semester.
+Allow progression into the next semester.
 
 ---
 
 # Sian — Phase 14 Owner
 
-Admin selects:
+## Sian — FE
 
-- Program
-- Batch
-- Section
+Admin:
 
-System shows students.
+1. Select program.
+2. Select batch.
+3. Select section.
+4. View students.
+5. Select/exclude exceptional students.
+6. Confirm promotion.
 
-Admin may exclude specific students.
+Show:
 
-Remaining students are promoted to next semester.
+* Current semester
+* Target semester
+* Student list
+* Status
+* Confirmation warning
+* Promotion result summary
 
-Exceptional students are handled manually.
+---
 
-Examples:
+## Sian — BE
 
-- Frozen
-- Repeating
-- Dropped
+Support:
 
-Previous semester data must remain available.
+* Retrieve promotion candidates
+* Exclude selected students
+* Promote remaining students
+* Update current semester
+* Assign next-semester course set when applicable
+* Preserve previous records
+* Respect student academic statuses
 
-No complex transfer handling.
+No complex section-transfer workflow.
 
 ---
 
 # Tayabba — Phase 14 Responsibilities
 
-Ensure previous:
+## Tayabba — BE
 
-- Attendance
-- Results
-- GPA records
+Ensure historical:
 
-remain available.
+* Attendance
+* Results
+* GPA
+
+remain tied to previous semester.
+
+## Tayabba — FE
+
+Historical academic pages must still display old records.
 
 ---
 
 # Hammad — Phase 14 Responsibilities
 
-Ensure:
+## Hammad — BE
 
-- Old timetable
-- Exams
-- Materials
+Ensure current student services do not treat previous:
 
-do not incorrectly appear as current information.
+* Timetables
+* Exams
+* Materials
+
+as current.
 
 ---
 
 ## Phase 14 Completion Criteria
 
-Students can move to next semester while previous academic records remain intact.
+Student moves semester without losing history.
 
 ---
 
@@ -1700,62 +2081,76 @@ Students can move to next semester while previous academic records remain intact
 
 ## Objective
 
-Record important academic and administrative changes.
+Record important changes.
 
 ---
 
 # Sian — Phase 15 Primary Owner
 
-Create central audit-log view.
+## Sian — FE
 
-Track important actions such as:
+Build Admin audit-log page.
 
-- Student creation
-- Teacher creation
-- Bulk student import
-- Semester promotion
-- Account changes
-- Timetable upload
-- Fee update
+Display:
 
-Each record should show:
+* User
+* Role
+* Action
+* Module
+* Date/time
+* Affected record
+* Reason
 
-- User
-- Role
-- Action
-- Module
-- Date/time
-- Affected record
-- Reason where required
+Provide basic filtering if useful.
+
+---
+
+## Sian — BE
+
+Create central audit logging for important actions.
+
+Sian's modules should log:
+
+* Student creation
+* Teacher creation
+* Bulk imports
+* Account changes
+* Semester promotion
+* Core academic changes
 
 ---
 
 # Tayabba — Phase 15 Responsibilities
 
-Record:
+## Tayabba — BE
 
-- Attendance changes
-- Result submission
-- Result approval
-- Result return
-- Result reopening
-- Grading changes
+Log:
+
+* Attendance changes
+* Result submission
+* Result approval
+* Result return
+* Result reopening
+* Grading-related actions
 
 ---
 
 # Hammad — Phase 15 Responsibilities
 
-Record relevant actions such as:
+## Hammad — BE
 
-- Fee changes
-- Timetable upload
-- Announcement actions
+Log:
+
+* Fee updates
+* Timetable changes
+* Announcement actions
+* Relevant student-service changes
 
 ---
 
 ## Phase 15 Completion Criteria
 
-Admin can inspect important actions from one audit-log area.
+Admin can inspect important system changes from one location.
 
 ---
 
@@ -1763,71 +2158,83 @@ Admin can inspect important actions from one audit-log area.
 
 ## Objective
 
-Make management easier when the portal has many users.
+Make large amounts of data manageable.
 
 ---
 
 # Sian — Phase 16 Owner
 
-## Student Search
+## Sian — FE
 
-Search by:
+Student search by:
 
-- Name
-- Registration number
-- email
+* Name
+* Registration number
+* Email
 
-Filter by:
+Filters:
 
-- Department
-- Program
-- Batch
-- Semester
-- Section
-- Account status
+* Department
+* Program
+* Batch
+* Semester
+* Section
+* Account status
+
+Teacher search by:
+
+* Name
+* Employee ID
+* Email
+
+Filters:
+
+* Department
+* Designation
+* Account status
 
 ---
 
-## Teacher Search
+## Sian — BE
 
-Search by:
-
-- Name
-- Employee ID
-- email
-
-Filter by:
-
-- Department
-- Designation
-- Account status
+Support search/filter requests and return matching results efficiently.
 
 ---
 
 # Tayabba — Phase 16 Responsibilities
 
-Provide useful filters inside:
+## Tayabba — FE
 
-- Attendance shortage list
-- Results
-- HOD academic views
+Add filters for:
+
+* Attendance shortages
+* Results
+* HOD academic views
+
+## Tayabba — BE
+
+Support related academic filtering.
 
 ---
 
 # Hammad — Phase 16 Responsibilities
 
-Provide simple search where useful for:
+## Hammad — FE
 
-- Course materials
-- Announcements
+Add simple search/filter where useful for:
 
-Avoid overcomplicating.
+* Materials
+* Announcements
+
+## Hammad — BE
+
+Support lightweight filtering only where necessary.
 
 ---
 
 ## Phase 16 Completion Criteria
 
-Admin and HOD can quickly locate students, teachers, and academic records.
+Admin and HOD can quickly locate required records.
 
 ---
 
@@ -1835,68 +2242,80 @@ Admin and HOD can quickly locate students, teachers, and academic records.
 
 ## Objective
 
-Prepare trustworthy university knowledge before building the chatbot.
+Prepare trusted university knowledge.
 
 ---
 
 # Hammad — Phase 17 Owner
 
-Hammad will prepare structured knowledge records.
+## Hammad — FE
 
-The knowledge is managed by developers, not portal users.
+No end-user management interface is required.
 
-Possible categories:
+There is no Admin AI knowledge screen.
 
-- Attendance rules
-- Passing rules
-- Examination rules
-- Grading policy
-- Academic procedures
-- Fee FAQs
-- General university FAQs
+Hammad may use internal development/testing views only if useful during development.
 
-Each record may contain:
+---
 
-- Title
-- Category
-- Question
-- Answer/information
-- Keywords
-- Active status
-- Last updated date
+## Hammad — BE
 
-There is no admin page for managing this knowledge.
+Prepare developer-managed knowledge records.
 
-The team directly maintains it as developers.
+Possible fields:
+
+* Title
+* Category
+* Question
+* Answer/information
+* Keywords
+* Active status
+* Last updated
+
+Categories:
+
+* Attendance rules
+* Passing rules
+* Examination rules
+* Grading policy
+* Academic procedures
+* Fee FAQs
+* General university FAQs
+
+Provide ability for chatbot logic to search these records.
 
 ---
 
 # Sian — Phase 17 Responsibilities
 
-Provide information about what student-specific data can be safely retrieved.
+## Sian — BE
 
-Examples:
+Identify safe student-specific data sources:
 
-- Courses
-- Teachers
-- Student profile identifiers
+* Courses
+* Teachers
+* Student identity
+* Academic structure
 
 ---
 
 # Tayabba — Phase 17 Responsibilities
 
-Provide correct academic calculations and information for:
+## Tayabba — BE
 
-- Attendance
-- Marks
-- GPA
-- Results
+Expose reliable student academic information for AI use:
+
+* Attendance
+* Marks
+* Grades
+* GPA
+* Results
 
 ---
 
 ## Phase 17 Completion Criteria
 
-A prepared set of university knowledge records exists and is ready for chatbot use.
+Developer-maintained university knowledge is ready for chatbot queries.
 
 ---
 
@@ -1910,164 +2329,111 @@ Implement the required AI feature.
 
 # Hammad — Phase 18 Owner
 
-## Chatbot Access
+## Hammad — FE
 
-Available only to students.
+Build floating student chatbot.
 
-Displayed as floating chat button.
+Features:
 
----
+* Floating button
+* Open/close panel
+* User messages
+* AI messages
+* Suggested questions
+* Loading indicator
+* Error state
+* Clear session
+* Mobile-friendly view
 
-## Chatbot Capabilities
+Support conversation follow-up during current session.
 
-Student may ask:
-
-- What is my attendance?
-- What is my attendance in Computer Networks?
-- How many classes did I miss?
-- What marks did I get?
-- What is my GPA?
-- What fee is remaining?
-- When is my exam?
-- Who teaches Web Engineering?
-- What materials are available?
-- What is the attendance requirement?
-- What is the passing percentage?
+Do not provide permanent history.
 
 ---
 
-## Personal Student Information
+## Hammad — BE
 
-Chatbot can use:
+Chatbot should answer using:
 
-- Attendance
-- Marks
-- Grades
-- GPA
-- CGPA
-- Courses
-- Teachers
-- Fee status
-- Timetable
-- Exam date sheet
-- Announcements
-- Course materials
+### Personal Student Data
 
----
+* Attendance
+* Marks
+* Grades
+* GPA
+* CGPA
+* Courses
+* Teachers
+* Fee
+* Timetable
+* Exams
+* Announcements
+* Materials
 
-## General University Information
+### University Knowledge
 
-Chatbot can use developer-prepared knowledge.
+* Developer-maintained knowledge records
 
----
+Support:
 
-## Read-Only Requirement
+* Clear personal questions
+* General university questions
+* Ambiguous/follow-up questions
+* Gemini response generation
+* Session conversation context
+* Unknown-information fallback
 
-Chatbot cannot modify anything.
+The chatbot must be read-only.
 
 It cannot:
 
-- Change marks
-- Mark attendance
-- Update fee
-- Change profile
-- Update results
-- Delete anything
+* Change attendance
+* Modify marks
+* Edit profile
+* Change fees
+* Modify result
+* Delete data
 
----
+It must use authenticated student identity.
 
-## Privacy
-
-Chatbot must use the logged-in student.
-
-It must not provide another student's private information.
-
----
-
-## Follow-Up Questions
-
-The chatbot remembers context during the current session.
-
-Example:
-
-Student:
-
-> What is my attendance in Networks?
-
-Then:
-
-> What about Web Engineering?
-
-The chatbot should understand the follow-up.
-
----
-
-## No Permanent Chat History
-
-Chat history exists only for the active session.
-
-Logout or session expiry clears it.
-
----
-
-## Unknown Information
-
-The chatbot must not guess.
-
-If information is unavailable, respond with a clear message asking the student to confirm with university administration.
-
----
-
-## Hybrid Question Handling
-
-Questions should be handled using:
-
-### Clear personal questions
-
-Retrieve student portal information.
-
-### General university questions
-
-Use university knowledge records.
-
-### Ambiguous or conversational questions
-
-Use Gemini to understand the intent and generate the response.
+It must not allow arbitrary student lookup.
 
 ---
 
 # Sian — Phase 18 Responsibilities
 
-Provide safe access to:
+## Sian — BE
 
-- Authenticated student identity
-- Courses
-- Teachers
-- Student-related academic structure
+Provide secure AI-access functions for:
 
-Ensure AI cannot request arbitrary student records.
+* Current authenticated student
+* Courses
+* Teachers
+* Academic structure
+
+Ensure Hammad's chatbot cannot ask for arbitrary student IDs.
 
 ---
 
 # Tayabba — Phase 18 Responsibilities
 
-Provide chatbot-readable access to:
+## Tayabba — BE
 
-- Attendance
-- Marks
-- GPA
-- Grades
-- Results
+Provide read-only AI-access functions for:
 
-Validate chatbot answers against actual portal values.
+* Attendance
+* Marks
+* Grades
+* GPA
+* Results
+
+Validate AI output against actual academic values.
 
 ---
 
 ## Phase 18 Completion Criteria
 
-Students can ask real questions and receive correct personalized responses.
-
-The chatbot must never alter portal data.
+Student asks natural-language academic questions and receives correct, safe answers.
 
 ---
 
@@ -2075,61 +2441,80 @@ The chatbot must never alter portal data.
 
 ## Objective
 
-Make the complete system feel consistent.
+Make the system consistent across devices.
 
 ---
 
 # Hammad — Primary UI Coordinator
 
+## Hammad — FE
+
 Review:
 
-- Student pages
-- Chatbot
-- Navigation
-- Mobile layouts
-- Tables
-- Cards
-- Notifications
+* Student pages
+* Chatbot
+* Mobile navigation
+* Cards
+* Notifications
+* Responsive layouts
 
 ---
 
-# Sian
+# Sian — FE
 
 Polish:
 
-- Admin pages
-- User management
-- Academic structure
-- Forms
-- Search pages
+* Admin pages
+* Authentication
+* Students
+* Teachers
+* Academic structure
+* Forms
+* Search
+* Tables
 
 ---
 
-# Tayabba
+# Tayabba — FE
 
 Polish:
 
-- Attendance
-- Marks
-- Results
-- HOD academic pages
-- Result card
+* Attendance
+* Assessments
+* Marks
+* Results
+* HOD pages
+* Result cards
 
 ---
 
-## Shared UI Requirements
+## Shared FE Requirements
 
-All members should follow the same:
+Use consistent:
 
-- Page layout
-- Navigation style
-- Button style
-- Form style
-- Table style
-- Empty states
-- Loading states
-- Error states
-- Confirmation dialogs
+* Page headings
+* Form styles
+* Button styles
+* Tables
+* Modals
+* Confirmation dialogs
+* Loading states
+* Empty states
+* Error states
+* Mobile behavior
+
+---
+
+## Shared BE Review
+
+All three should review:
+
+* Consistent error responses
+* Permissions
+* Validation
+* Module integration
+* Missing edge cases
+* Broken relationships
 
 ---
 
@@ -2137,407 +2522,546 @@ All members should follow the same:
 
 ## Objective
 
-Test complete university workflows instead of isolated pages.
+Test full workflows across FE and BE.
 
 ---
 
-# Test Scenario 1 — New Student
+# Scenario 1 — New Student
 
 **Primary: Sian**
 
-1. Admin creates student.
-2. Student belongs to program/semester/section.
-3. Student receives assigned courses.
-4. Student receives an account with the hashed default temporary password.
-5. Student requests and completes password reset.
-6. Student signs in with the registered email address and new password through Better Auth.
-7. Student reaches the student dashboard after backend role and account-status checks pass.
+### FE Test
+
+* Admin creates student.
+* Student logs in.
+* Temporary-password screen appears.
+* Student sees correct courses.
+
+### BE Test
+
+Verify:
+
+* Student record created.
+* Academic relationships correct.
+* Course enrollment created.
+* Login and password-change state correct.
 
 ---
 
-# Test Scenario 2 — Attendance
+# Scenario 2 — Attendance
 
 **Primary: Tayabba**
 
-1. Teacher logs in.
-2. Teacher selects course.
-3. Teacher marks attendance.
-4. Student logs in.
-5. Student sees percentage.
-6. Low attendance warning appears if needed.
-7. HOD sees shortage.
+### FE Test
+
+* Teacher marks attendance.
+* Student sees it.
+* HOD sees shortage.
+
+### BE Test
+
+Verify:
+
+* Correct course session.
+* No duplicate date session.
+* Correct percentage.
+* Correct threshold warning.
 
 ---
 
-# Test Scenario 3 — Results
+# Scenario 3 — Results
 
 **Primary: Tayabba**
 
-1. Teacher creates assessments.
-2. Teacher enters marks.
-3. Teacher saves draft.
-4. Teacher submits.
-5. HOD returns result.
-6. Teacher fixes result.
-7. Teacher resubmits.
-8. HOD approves.
-9. Student sees published result.
-10. Student downloads result card.
+### FE Test
+
+Teacher:
+
+* Creates assessment.
+* Enters marks.
+* Submits.
+
+HOD:
+
+* Returns.
+* Approves.
+
+Student:
+
+* Sees result.
+* Downloads card.
+
+### BE Test
+
+Verify:
+
+* Weightages
+* Grade
+* GPA
+* Result statuses
+* Approval locking
+* Reopening
 
 ---
 
-# Test Scenario 4 — Fee
+# Scenario 4 — Fees
 
 **Primary: Hammad**
 
-1. Admin updates student fee.
-2. Student logs in.
-3. Student sees correct remaining amount and status.
+### FE
+
+Admin updates → student views.
+
+### BE
+
+Verify correct student's fee only.
 
 ---
 
-# Test Scenario 5 — Timetable
+# Scenario 5 — Timetable
 
 **Primary: Hammad**
 
-1. Admin uploads timetable for BSCS Semester 8 Section A.
-2. Correct student sees it.
-3. Student from another section should not see it.
+### FE
+
+Correct section sees timetable.
+
+### BE
+
+Wrong-section student must not receive timetable.
 
 ---
 
-# Test Scenario 6 — Course Material
+# Scenario 6 — Course Materials
 
 **Primary: Hammad**
 
-1. Teacher uploads material.
-2. Enrolled student sees file.
-3. Non-enrolled student cannot access it.
+### FE
+
+Teacher uploads → student downloads.
+
+### BE
+
+Verify:
+
+* Teacher assignment
+* Student enrollment
+* File authorization
 
 ---
 
-# Test Scenario 7 — AI
+# Scenario 7 — AI
 
 **Primary: Hammad**
 
-Student asks:
+### FE
 
-> What is my attendance in Computer Networks?
+Test chatbot flow and follow-ups.
 
-Correct data should be returned.
+### BE
 
-Then ask:
+Test:
 
-> What about Web Engineering?
-
-Follow-up should work.
-
-Then test:
-
-> Tell me another student's marks.
-
-The chatbot must not expose them.
+* Correct student context
+* Correct attendance/result values
+* University knowledge
+* No unauthorized student data
+* No modification capabilities
 
 ---
 
 # PHASE 21 — Demo Data Preparation
 
-## Objective
+## Sian
 
-Populate the FYP with realistic data before presentation.
+### FE/Functional Data
 
----
+Prepare visible:
 
-# Sian
+* Departments
+* Programs
+* Batches
+* Semesters
+* Sections
+* Students
+* Teachers
+* HOD
+* Courses
 
-Prepare:
+### BE/Data State
 
-- Departments
-- Programs
-- Batches
-- Semesters
-- Sections
-- Students
-- Teachers
-- HOD
-- Courses
-- Assignments
-
----
-
-# Tayabba
-
-Prepare:
-
-- Attendance history
-- Quiz marks
-- Assignment marks
-- Midterm marks
-- Final marks
-- Pending result
-- Returned result
-- Approved result
-- GPA examples
+Ensure relationships and enrollments are valid.
 
 ---
 
-# Hammad
+## Tayabba
 
 Prepare:
 
-- Fee records
-- Timetable images
-- Exam date sheets
-- Course materials
-- Announcements
-- Notifications
-- AI knowledge
-- Chatbot examples
+* Attendance sessions
+* Quizzes
+* Assignments
+* Midterms
+* Finals
+* Pending result
+* Returned result
+* Approved result
+* GPA examples
 
 ---
 
-# Recommended Demo Accounts
+## Hammad
 
 Prepare:
 
-- 1 Admin account
-- 1 HOD account
-- 2–3 Teacher accounts
-- Multiple Student accounts
-
-At least one student should have:
-
-- Good attendance
-- Low attendance in one course
-- Approved marks
-- Fee balance
-- Timetable
-- Exams
-- Materials
-
-This makes the demo more realistic.
+* Fees
+* Timetable images
+* Exams
+* Materials
+* Announcements
+* Notifications
+* AI knowledge
+* Chatbot questions
 
 ---
 
 # PHASE 22 — Final Presentation Preparation
 
-## Sian Should Demonstrate
+## Sian Demonstration
 
-- Admin login
-- Academic structure
-- Student management
-- Teacher management
-- Bulk import
-- Course assignment
-- Student enrollment
-- Semester promotion
+Show both FE behavior and underlying feature workflow for:
 
----
-
-## Tayabba Should Demonstrate
-
-- Teacher login
-- Attendance
-- Attendance shortage
-- Assessments
-- Marks
-- Result submission
-- HOD approval
-- GPA
-- Result card
+* Admin login
+* Academic structure
+* Students
+* Teachers
+* Bulk import
+* Courses
+* Enrollment
+* Semester promotion
 
 ---
 
-## Hammad Should Demonstrate
+## Tayabba Demonstration
 
-- Student dashboard
-- Fees
-- Timetable
-- Exams
-- Course materials
-- Announcements
-- Notifications
-- Gemini chatbot
+Show:
+
+* Teacher attendance
+* Student attendance
+* Attendance warning
+* Assessments
+* Marks
+* Result submission
+* HOD approval
+* GPA
+* Result card
 
 ---
 
-# Final Responsibility Matrix
+## Hammad Demonstration
 
-| Module | Primary Owner | Supporting Member |
-|---|---|---|
-| Authentication | Sian | All |
-| User Roles | Sian | All |
-| Students | Sian | — |
-| Teachers | Sian | — |
-| HOD Management | Sian | — |
-| Departments | Sian | — |
-| Programs | Sian | — |
-| Batches | Sian | — |
-| Semesters | Sian | Tayabba |
-| Sections | Sian | — |
-| Courses | Sian | Tayabba |
-| Enrollment | Sian | Tayabba |
-| Teacher Assignment | Sian | Tayabba |
-| Bulk Import | Sian | — |
-| Semester Promotion | Sian | Tayabba |
-| Search/Filters | Sian | All |
-| Attendance | Tayabba | Sian |
-| Attendance Shortage | Tayabba | Hammad |
-| Assessments | Tayabba | — |
-| Marks | Tayabba | — |
-| Grades | Tayabba | — |
-| GPA/CGPA | Tayabba | — |
-| Result Submission | Tayabba | — |
-| HOD Approval | Tayabba | Sian |
-| Result Card | Tayabba | Hammad |
-| Fees | Hammad | Sian |
-| Timetable | Hammad | Sian |
-| Exam Date Sheet | Hammad | Sian |
-| Course Materials | Hammad | Sian |
-| Announcements | Hammad | — |
-| Notifications | Hammad | All |
-| Student Dashboard | Hammad | Tayabba |
-| Teacher Dashboard | Tayabba | — |
-| HOD Dashboard | Tayabba | Sian |
-| Admin Dashboard | Sian | — |
-| Audit Logs | Sian | Tayabba/Hammad |
-| AI Knowledge | Hammad | All |
-| Gemini Chatbot | Hammad | Sian/Tayabba |
-| Responsive UI | All | Hammad coordinates |
-| Testing | All | — |
-| Demo Preparation | All | — |
+Show:
+
+* Student dashboard
+* Fees
+* Timetable
+* Exams
+* Materials
+* Announcements
+* Notifications
+* Gemini chatbot
+
+---
+
+# Final FE/BE Ownership Matrix
+
+| Module              | Primary Owner | FE Owner | BE Owner | Support            |
+| ------------------- | ------------- | -------- | -------- | ------------------ |
+| Authentication      | Sian          | Sian     | Sian     | All                |
+| User Roles          | Sian          | Sian     | Sian     | All                |
+| Students            | Sian          | Sian     | Sian     | —                  |
+| Teachers            | Sian          | Sian     | Sian     | —                  |
+| HOD Management      | Sian          | Sian     | Sian     | —                  |
+| Departments         | Sian          | Sian     | Sian     | —                  |
+| Programs            | Sian          | Sian     | Sian     | —                  |
+| Batches             | Sian          | Sian     | Sian     | —                  |
+| Semesters           | Sian          | Sian     | Sian     | Tayabba            |
+| Sections            | Sian          | Sian     | Sian     | —                  |
+| Courses             | Sian          | Sian     | Sian     | Tayabba            |
+| Enrollment          | Sian          | Sian     | Sian     | Tayabba            |
+| Teacher Assignment  | Sian          | Sian     | Sian     | Tayabba            |
+| Bulk Import         | Sian          | Sian     | Sian     | —                  |
+| Semester Promotion  | Sian          | Sian     | Sian     | Tayabba            |
+| Search/Filters      | Sian          | Sian     | Sian     | All                |
+| Attendance          | Tayabba       | Tayabba  | Tayabba  | Sian               |
+| Attendance Shortage | Tayabba       | Tayabba  | Tayabba  | Hammad             |
+| Assessments         | Tayabba       | Tayabba  | Tayabba  | —                  |
+| Marks               | Tayabba       | Tayabba  | Tayabba  | —                  |
+| Grades              | Tayabba       | Tayabba  | Tayabba  | Sian               |
+| GPA/CGPA            | Tayabba       | Tayabba  | Tayabba  | —                  |
+| Result Submission   | Tayabba       | Tayabba  | Tayabba  | —                  |
+| HOD Approval        | Tayabba       | Tayabba  | Tayabba  | Sian               |
+| Result Card         | Tayabba       | Tayabba  | Tayabba  | Hammad             |
+| Fees                | Hammad        | Hammad   | Hammad   | Sian               |
+| Timetable           | Hammad        | Hammad   | Hammad   | Sian               |
+| Exam Date Sheet     | Hammad        | Hammad   | Hammad   | Sian               |
+| Course Materials    | Hammad        | Hammad   | Hammad   | Sian               |
+| Announcements       | Hammad        | Hammad   | Hammad   | —                  |
+| Notifications       | Hammad        | Hammad   | Hammad   | All                |
+| Student Dashboard   | Hammad        | Hammad   | Hammad   | Tayabba            |
+| Teacher Dashboard   | Tayabba       | Tayabba  | Tayabba  | —                  |
+| HOD Dashboard       | Tayabba       | Tayabba  | Tayabba  | Sian               |
+| Admin Dashboard     | Sian          | Sian     | Sian     | —                  |
+| Audit Logs          | Sian          | Sian     | Sian     | Tayabba/Hammad     |
+| AI Knowledge        | Hammad        | —        | Hammad   | All                |
+| Gemini Chatbot      | Hammad        | Hammad   | Hammad   | Sian/Tayabba       |
+| Responsive UI       | All           | All      | —        | Hammad coordinates |
+| Testing             | All           | All      | All      | —                  |
 
 ---
 
 # Recommended Development Order
 
-The team should follow this order:
+The original development order remains unchanged.
 
 ## Stage 1 — Foundation
 
 ### Sian
-- Authentication
-- Roles
-- Academic structure
-- Users
+
+**FE**
+
+* Login
+* Password-change UI
+* Role layouts
+* Admin academic-structure pages
+
+**BE**
+
+* Authentication
+* Roles
+* User session
+* Academic structure
 
 ### Tayabba
-- Attendance/marks/result page skeletons
+
+**FE**
+
+* Attendance page skeleton
+* Marks page skeleton
+* Results page skeleton
+
+**BE**
+
+* Prepare academic module structure
 
 ### Hammad
-- Student-service page skeletons
-- Dashboard layout
-- Chatbot UI placeholder
+
+**FE**
+
+* Student-service skeletons
+* Student dashboard shell
+* Chatbot placeholder
+
+**BE**
+
+* Prepare student-service module structure
 
 ---
 
-## Stage 2 — Academic Connections
+# Stage 2 — Academic Connections
 
 ### Sian
-- Courses
-- Enrollment
-- Teacher assignment
+
+**FE**
+
+* Course management
+* Course assignment
+* Teacher assignment
+* Student course view
+
+**BE**
+
+* Courses
+* Enrollments
+* Automatic enrollment
+* Teacher assignments
 
 ### Tayabba
-- Connect attendance to real courses/students
+
+**FE**
+
+* Connect attendance screens to real teacher courses
+
+**BE**
+
+* Validate teacher/student/course relationships
 
 ### Hammad
-- Connect student services to logged-in students
+
+**FE**
+
+* Connect student pages to authenticated user
+
+**BE**
+
+* Use student/course relationships for future services
 
 ---
 
-## Stage 3 — Main Academic Features
+# Stage 3 — Main Academic Features
 
 ### Tayabba
-- Attendance
-- Assessments
-- Marks
-- Results
-- GPA
+
+**FE + BE**
+
+* Attendance
+* Assessments
+* Marks
+* Grades
+* Results
+* GPA
+* HOD approval
 
 ### Sian
-- Support academic configuration
+
+**FE + BE**
+
+* Assessment configuration
+* Grading configuration
+* Supporting academic management
 
 ### Hammad
-- Fees
-- Timetable
-- Exams
-- Materials
+
+**FE + BE**
+
+* Fees
+* Timetable
+* Exams
+* Materials
 
 ---
 
-## Stage 4 — Communication and Dashboards
+# Stage 4 — Communication and Dashboards
 
 ### Hammad
-- Announcements
-- Notifications
-- Student dashboard
+
+**FE + BE**
+
+* Announcements
+* Notifications
+* Student dashboard
 
 ### Tayabba
-- Teacher/HOD dashboards
+
+**FE + BE**
+
+* Teacher dashboard
+* HOD dashboard
 
 ### Sian
-- Admin dashboard
-- Semester promotion
+
+**FE + BE**
+
+* Admin dashboard
+* Semester promotion
 
 ---
 
-## Stage 5 — AI
+# Stage 5 — AI
 
-Only after the portal already contains real student information.
+Only after real portal data exists.
 
 ### Hammad
-- Knowledge base
-- Gemini chatbot
+
+**FE**
+
+* Chat widget
+* Chat interaction
+* Session conversation UX
+
+**BE**
+
+* AI knowledge
+* Gemini integration
+* Question routing
+* Student-service AI access
 
 ### Sian
-- Student/course identity integration
+
+**BE**
+
+* Student identity
+* Course information
+* Teacher information
+* Safe AI access
 
 ### Tayabba
-- Attendance/results integration
+
+**BE**
+
+* Attendance AI access
+* Marks AI access
+* GPA/results AI access
 
 ---
 
-## Stage 6 — Finalization
+# Stage 6 — Finalization
 
-All three:
+## FE — All Three
 
-- Audit all permissions
-- Test complete workflows
-- Fix bugs
-- Improve responsive UI
-- Populate demo data
-- Prepare presentation
+* Responsive fixes
+* UI consistency
+* Loading states
+* Error states
+* Empty states
+* Confirmation dialogs
+* End-to-end screen testing
+
+## BE — All Three
+
+* Permission review
+* Data validation
+* Error handling
+* Cross-module integration
+* Audit verification
+* Security testing
+* Demo-data consistency
 
 ---
 
 # Important Team Rule
 
-Do not develop the project as:
+The team still should **not** divide work as:
 
-> Sian builds frontend  
-> Tayabba builds backend  
-> Hammad builds AI
+> Sian = Frontend
+> Tayabba = Backend
+> Hammad = AI
 
-That division creates too many dependencies and makes it difficult for each member to fully understand their work.
-
-Instead, each member should **own complete functional modules**.
+Each member owns the **frontend and backend of their own functional area**.
 
 For example:
 
-Tayabba should own the complete attendance feature from:
+### Sian
 
-> Teacher marks attendance → student sees attendance → HOD monitors shortages.
+Owns:
 
-Hammad should own the complete timetable feature from:
+> Admin Student Form → Student Creation Logic → Academic Assignment → Student Retrieval → Student Profile
 
-> Admin uploads timetable → correct student views timetable.
+### Tayabba
 
-Sian should own the complete student setup from:
+Owns:
 
-> Admin creates student → assigns academic structure → student logs in → courses are assigned.
+> Teacher Attendance Screen → Attendance Saving → Percentage Calculation → Student Attendance Screen → HOD Warning Screen
 
-This will make development, testing, debugging, documentation, and FYP defense significantly easier.
+### Hammad
+
+Owns:
+
+> Timetable Upload Screen → Timetable Storage → Student Timetable Retrieval → Student Timetable Screen
+
+This means each member can explain their feature completely during the FYP defense:
+
+> What the user sees → what action happens → how the system processes it → what data is returned → what the final result is.
 
 ---
 
@@ -2545,20 +3069,81 @@ This will make development, testing, debugging, documentation, and FYP defense s
 
 ## Sian — Core Academic System
 
-Owns:
+### FE
 
-> Authentication + Users + Academic Structure + Courses + Enrollment + Admin Management + Semester Lifecycle
+* Authentication UI
+* Admin management UI
+* Student/teacher management
+* Academic structure
+* Courses
+* Enrollment
+* Search
+* Admin dashboard
+* Semester promotion
+
+### BE
+
+* Authentication
+* User management
+* Academic relationships
+* Courses
+* Enrollment
+* Teacher assignment
+* Semester lifecycle
+* Core authorization
+
+---
 
 ## Tayabba — Academic Performance System
 
-Owns:
+### FE
 
-> Attendance + Assessments + Marks + Grades + GPA + Results + HOD Academic Approval
+* Attendance
+* Assessments
+* Marks
+* Results
+* Teacher dashboard
+* HOD dashboard
+* Result card
+
+### BE
+
+* Attendance records
+* Attendance calculations
+* Assessment calculations
+* Marks
+* Grades
+* GPA/CGPA
+* Result workflow
+* HOD approval
+
+---
 
 ## Hammad — Student Services & AI
 
-Owns:
+### FE
 
-> Fees + Timetable + Exams + Materials + Announcements + Notifications + Student Experience + Gemini Chatbot
+* Student dashboard
+* Fees
+* Timetable
+* Exams
+* Materials
+* Announcements
+* Notifications
+* Floating AI chatbot
 
-This division should be treated as the team's primary development plan unless the workload needs to be rebalanced later.
+### BE
+
+* Fee records
+* Timetables
+* Exam records
+* File/material handling
+* Announcements
+* Notifications
+* AI knowledge
+* Gemini chatbot
+* AI question handling
+
+---
+
+This FE/BE split should be used **inside the existing phase plan**, while keeping the same module ownership and phase order.

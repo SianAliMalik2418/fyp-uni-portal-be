@@ -9,6 +9,11 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1),
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(10),
+  AUTH_COOKIE_NAME: z.string().min(1).default('portal_session'),
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().default(7),
+  SEED_ADMIN_EMAIL: z.email().optional(),
+  SEED_ADMIN_PASSWORD: z.string().min(8).optional(),
+  SEED_ADMIN_NAME: z.string().min(1).default('Portal Admin'),
 })
 
 export const env = envSchema.parse(process.env)

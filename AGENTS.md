@@ -34,13 +34,15 @@
 - Validate request input with Zod before business logic.
 - Keep authentication, authorization, audit logging, and AI access checks on the backend.
 - Never expose `GEMINI_API_KEY`, JWT secrets, database URIs, or refresh tokens to the frontend.
+- Do not add public signup/self-registration. The first admin is seeded by developers, and admins create student, teacher, HOD, and additional admin accounts.
+- Use email/password as the only login credential pair. Registration numbers and employee IDs are profile/academic identifiers, not login identifiers.
 
 ## API Rules
 
 - Use Express routes under `/api`.
 - Return JSON responses with predictable shapes.
 - Use centralized error handling through `middlewares/error.middleware.ts`.
-- Use secure HTTP-only cookies for refresh tokens when auth is implemented.
+- Use secure HTTP-only cookies for session tokens when auth is implemented.
 - Keep Gemini access read-only and scoped to approved student/user data.
 
 ## Verification

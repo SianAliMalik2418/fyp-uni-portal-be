@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "seed:admin": "tsx src/scripts/seed-admin.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
