@@ -10,6 +10,7 @@
 - Work from the `BE/` directory for backend package commands.
 - Use Bun for backend dependency and script execution.
 - Keep `BE/bun.lock` as the backend package lockfile.
+- Before every push, tell the user which GitHub account will be used for the push.
 
 ## Backend Architecture
 
