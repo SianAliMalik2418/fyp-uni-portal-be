@@ -10,8 +10,6 @@
 - Work from the `BE/` directory for backend package commands.
 - Use Bun for backend dependency and script execution.
 - Keep `BE/bun.lock` as the backend package lockfile.
-- Before every push, explicitly tell the user which GitHub account will be used and wait for their confirmation.
-- Keep commit wording distinct for each project member while still using conventional prefixes. Sian should use short direct implementation wording, Tayyaba should use clearer workflow or handoff wording, and Hammad should use more system/technical wording. Do not reuse the same phrasing style across all three members.
 
 ## Backend Architecture
 
