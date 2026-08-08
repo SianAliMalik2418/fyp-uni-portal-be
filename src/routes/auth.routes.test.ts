@@ -10,6 +10,7 @@ vi.mock('../services/auth.service.js', () => ({
   login: vi.fn(),
   logout: vi.fn(),
   changePassword: vi.fn(),
+  hashPassword: vi.fn((password: string) => `hashed:${password}`),
   resolveSession: vi.fn(),
   serializeUser: vi.fn((user: MockUser) => ({
     id: user.id,

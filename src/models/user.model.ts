@@ -13,6 +13,8 @@ export interface User {
   isActive: boolean
   mustChangePassword: boolean
   temporaryPasswordExpiresAt?: Date
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export type UserDocument = HydratedDocument<User>

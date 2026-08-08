@@ -82,6 +82,10 @@ The backend follows an MVC-style layout:
 - `src/middlewares`: Error and not-found handling.
 - `src/config`: Environment and database setup.
 
+## Code Quality Principles
+
+Backend implementation should consistently follow SOLID, DRY, and clean code principles. Keep controllers thin, place reusable business logic in services, avoid duplicated validation or authorization paths, prefer clear names and small cohesive modules, and keep abstractions aligned with the MVC-style architecture.
+
 ## Testing and Quality
 
 - `vitest`: Unit and integration test runner.
