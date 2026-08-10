@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+  academicPerformanceRoutes,
   assessmentsRoutes,
   attendanceRoutes,
   marksRoutes,
@@ -33,6 +34,7 @@ apiRoutes.use('/programs', programsRoutes)
 apiRoutes.use('/sections', sectionsRoutes)
 apiRoutes.use('/semesters', semestersRoutes)
 apiRoutes.use('/users', usersRoutes)
+apiRoutes.use('/academic-performance', academicPerformanceRoutes)
 apiRoutes.use('/attendance', attendanceRoutes)
 apiRoutes.use('/assessments', assessmentsRoutes)
 apiRoutes.use('/marks', marksRoutes)

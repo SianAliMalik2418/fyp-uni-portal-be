@@ -10,6 +10,14 @@ vi.mock('../services/auth.service.js', () => ({
   resolveSession: vi.fn(),
 }))
 
+vi.mock('../services/section.service.js', () => ({
+  listSections: vi.fn(),
+}))
+
+vi.mock('../services/semester.service.js', () => ({
+  listSemesters: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -21,6 +29,8 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const sectionService = await import('../services/section.service.js')
+const semesterService = await import('../services/semester.service.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -40,9 +50,45 @@ function authenticateAs(role: AuthenticatedUser['role']) {
   } as never)
 }
 
+const currentSemester = {
+  id: '507f1f77bcf86cd799439012',
+  name: 'Semester 8',
+  academicYear: '2026-2027',
+  isActive: true,
+  isClosed: false,
+}
+
+const activeSection = {
+  id: '507f1f77bcf86cd799439013',
+  name: 'A',
+  program: {
+    id: '507f1f77bcf86cd799439014',
+    name: 'BS Computer Science',
+    code: 'BSCS',
+    isActive: true,
+  },
+  batch: {
+    id: '507f1f77bcf86cd799439015',
+    name: 'Fall 2023',
+    startingYear: 2023,
+    expectedGraduationYear: 2027,
+    isActive: true,
+  },
+  semester: {
+    id: currentSemester.id,
+    name: currentSemester.name,
+    academicYear: currentSemester.academicYear,
+    isActive: true,
+    isClosed: false,
+  },
+  isActive: true,
+}
+
 describe('academic performance placeholder routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(sectionService.listSections).mockReset()
+    vi.mocked(semesterService.listSemesters).mockReset()
   })
 
   it('returns the attendance placeholder for authenticated students', async () => {
@@ -96,5 +142,39 @@ describe('academic performance placeholder routes', () => {
       .get('/api/marks')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(403)
+  })
+
+  it('returns current semester and active structure context for performance modules', async () => {
+    authenticateAs('teacher')
+    vi.mocked(semesterService.listSemesters).mockResolvedValue([
+      currentSemester,
+      {
+        ...currentSemester,
+        id: '507f1f77bcf86cd799439016',
+        name: 'Semester 7',
+        isActive: false,
+      },
+    ])
+    vi.mocked(sectionService.listSections).mockResolvedValue([
+      activeSection,
+      {
+        ...activeSection,
+        id: '507f1f77bcf86cd799439017',
+        name: 'B',
+        isActive: false,
+      },
+    ])
+
+    const response = await request(app)
+      .get('/api/academic-performance/context')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toEqual({
+      currentSemester,
+      activeSections: [activeSection],
+      studentSection: null,
+      canResolveStudentSection: false,
+    })
   })
 })

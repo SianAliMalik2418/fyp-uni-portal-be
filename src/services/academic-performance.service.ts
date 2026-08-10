@@ -1,4 +1,6 @@
 import type { UserRole } from '../models/user.model.js'
+import { listSections, type SerializedSection } from './section.service.js'
+import { listSemesters, type SerializedSemester } from './semester.service.js'
 
 export type AcademicPerformanceModule = 'attendance' | 'assessments' | 'marks' | 'results'
 
@@ -8,6 +10,13 @@ export type AcademicPerformancePlaceholder = {
   empty: true
   message: string
   allowedRoles: UserRole[]
+}
+
+export type AcademicPerformanceContext = {
+  currentSemester: SerializedSemester | null
+  activeSections: SerializedSection[]
+  studentSection: SerializedSection | null
+  canResolveStudentSection: boolean
 }
 
 const placeholders: Record<
@@ -51,4 +60,28 @@ export function getAcademicPerformancePlaceholder(
 
 export function getAcademicPerformanceAllowedRoles(module: AcademicPerformanceModule) {
   return placeholders[module].allowedRoles
+}
+
+export async function getAcademicPerformanceContext(): Promise<AcademicPerformanceContext> {
+  const [semesters, sections] = await Promise.all([listSemesters(), listSections()])
+  const currentSemester =
+    semesters.find((semester) => semester.isActive && !semester.isClosed) ?? null
+  const activeSections = sections.filter((section) => {
+    if (!section.isActive) {
+      return false
+    }
+
+    if (!currentSemester) {
+      return true
+    }
+
+    return section.semester.id === currentSemester.id
+  })
+
+  return {
+    currentSemester,
+    activeSections,
+    studentSection: null,
+    canResolveStudentSection: false,
+  }
 }

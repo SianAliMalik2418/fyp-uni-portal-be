@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import {
+  getAcademicPerformanceContextController,
   getAssessmentsPlaceholder,
   getAttendancePlaceholder,
   getMarksPlaceholder,
@@ -12,6 +13,10 @@ export const attendanceRoutes = Router()
 export const assessmentsRoutes = Router()
 export const marksRoutes = Router()
 export const resultsRoutes = Router()
+export const academicPerformanceRoutes = Router()
+
+academicPerformanceRoutes.use(requireAuth, requireRoles('student', 'teacher', 'hod', 'admin'))
+academicPerformanceRoutes.get('/context', getAcademicPerformanceContextController)
 
 attendanceRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('attendance')))
 attendanceRoutes.get('/', getAttendancePlaceholder)
