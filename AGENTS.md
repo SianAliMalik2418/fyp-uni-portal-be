@@ -10,6 +10,7 @@
 - Work from the `BE/` directory for backend package commands.
 - Use Bun for backend dependency and script execution.
 - Keep `BE/bun.lock` as the backend package lockfile.
+- For git-only requests such as commit, push, or commit and push, do only the requested Git workflow. Do not run lint, tests, builds, or format checks unless the user explicitly asks for verification.
 
 ## Backend Architecture
 
