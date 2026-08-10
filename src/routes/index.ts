@@ -6,6 +6,7 @@ import {
   resultsRoutes,
 } from './academic-performance.routes.js'
 import { authRoutes } from './auth.routes.js'
+import { departmentsRoutes } from './departments.routes.js'
 import { healthRoutes } from './health.routes.js'
 import {
   aiAssistantRoutes,
@@ -21,6 +22,7 @@ import { usersRoutes } from './users.routes.js'
 export const apiRoutes = Router()
 
 apiRoutes.use('/auth', authRoutes)
+apiRoutes.use('/departments', departmentsRoutes)
 apiRoutes.use('/health', healthRoutes)
 apiRoutes.use('/users', usersRoutes)
 apiRoutes.use('/attendance', attendanceRoutes)
