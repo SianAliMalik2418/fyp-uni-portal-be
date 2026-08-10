@@ -1,4 +1,6 @@
 import type { UserRole } from '../models/user.model.js'
+import { listSections, type SerializedSection } from './section.service.js'
+import { listSemesters, type SerializedSemester } from './semester.service.js'
 
 export type StudentServiceModule =
   'fees' | 'timetable' | 'exams' | 'materials' | 'announcements' | 'notifications' | 'ai-assistant'
@@ -9,6 +11,26 @@ export type StudentServicePlaceholder = {
   empty: true
   message: string
   allowedRoles: UserRole[]
+}
+
+export type StudentServiceContext = {
+  currentSemester: SerializedSemester | null
+  availableSections: SerializedSection[]
+  timetableScope: StudentServiceStructureScope
+  examScope: StudentServiceStructureScope
+  aiScope: StudentServiceStructureScope
+}
+
+export type StudentServiceStructureScope = {
+  canReferenceProgram: boolean
+  canReferenceSemester: boolean
+  canReferenceSection: boolean
+}
+
+const unresolvedScope: StudentServiceStructureScope = {
+  canReferenceProgram: false,
+  canReferenceSemester: false,
+  canReferenceSection: false,
 }
 
 const placeholders: Record<StudentServiceModule, Omit<StudentServicePlaceholder, 'module'>> = {
@@ -67,4 +89,35 @@ export function getStudentServicePlaceholder(
 
 export function getStudentServiceAllowedRoles(module: StudentServiceModule) {
   return placeholders[module].allowedRoles
+}
+
+export async function getStudentServiceContext(): Promise<StudentServiceContext> {
+  const [semesters, sections] = await Promise.all([listSemesters(), listSections()])
+  const currentSemester =
+    semesters.find((semester) => semester.isActive && !semester.isClosed) ?? null
+  const availableSections = sections.filter((section) => {
+    if (!section.isActive) {
+      return false
+    }
+
+    if (!currentSemester) {
+      return true
+    }
+
+    return section.semester.id === currentSemester.id
+  })
+  const hasSection = availableSections.length > 0
+  const scope: StudentServiceStructureScope = {
+    canReferenceProgram: hasSection,
+    canReferenceSemester: Boolean(currentSemester),
+    canReferenceSection: hasSection,
+  }
+
+  return {
+    currentSemester,
+    availableSections,
+    timetableScope: scope,
+    examScope: scope,
+    aiScope: hasSection && currentSemester ? scope : unresolvedScope,
+  }
 }

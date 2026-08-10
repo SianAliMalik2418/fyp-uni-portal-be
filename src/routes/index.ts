@@ -20,6 +20,7 @@ import {
   feesRoutes,
   materialsRoutes,
   notificationsRoutes,
+  studentServicesRoutes,
   timetableRoutes,
 } from './student-services.routes.js'
 import { usersRoutes } from './users.routes.js'
@@ -43,6 +44,7 @@ apiRoutes.use('/fees', feesRoutes)
 apiRoutes.use('/timetable', timetableRoutes)
 apiRoutes.use('/exams', examsRoutes)
 apiRoutes.use('/materials', materialsRoutes)
+apiRoutes.use('/student-services', studentServicesRoutes)
 apiRoutes.use('/announcements', announcementsRoutes)
 apiRoutes.use('/notifications', notificationsRoutes)
 apiRoutes.use('/ai-assistant', aiAssistantRoutes)

@@ -10,6 +10,14 @@ vi.mock('../services/auth.service.js', () => ({
   resolveSession: vi.fn(),
 }))
 
+vi.mock('../services/section.service.js', () => ({
+  listSections: vi.fn(),
+}))
+
+vi.mock('../services/semester.service.js', () => ({
+  listSemesters: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -21,6 +29,8 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const sectionService = await import('../services/section.service.js')
+const semesterService = await import('../services/semester.service.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -40,9 +50,45 @@ function authenticateAs(role: AuthenticatedUser['role']) {
   } as never)
 }
 
+const currentSemester = {
+  id: '507f1f77bcf86cd799439012',
+  name: 'Semester 8',
+  academicYear: '2026-2027',
+  isActive: true,
+  isClosed: false,
+}
+
+const activeSection = {
+  id: '507f1f77bcf86cd799439013',
+  name: 'A',
+  program: {
+    id: '507f1f77bcf86cd799439014',
+    name: 'BS Computer Science',
+    code: 'BSCS',
+    isActive: true,
+  },
+  batch: {
+    id: '507f1f77bcf86cd799439015',
+    name: 'Fall 2023',
+    startingYear: 2023,
+    expectedGraduationYear: 2027,
+    isActive: true,
+  },
+  semester: {
+    id: currentSemester.id,
+    name: currentSemester.name,
+    academicYear: currentSemester.academicYear,
+    isActive: true,
+    isClosed: false,
+  },
+  isActive: true,
+}
+
 describe('student services placeholder routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(sectionService.listSections).mockReset()
+    vi.mocked(semesterService.listSemesters).mockReset()
   })
 
   it('returns the fees placeholder for authenticated students', async () => {
@@ -97,5 +143,36 @@ describe('student services placeholder routes', () => {
       .get('/api/notifications')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(403)
+  })
+
+  it('returns academic structure context for timetable, exam, and AI references', async () => {
+    authenticateAs('admin')
+    vi.mocked(semesterService.listSemesters).mockResolvedValue([currentSemester])
+    vi.mocked(sectionService.listSections).mockResolvedValue([activeSection])
+
+    const response = await request(app)
+      .get('/api/student-services/context')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toEqual({
+      currentSemester,
+      availableSections: [activeSection],
+      timetableScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+      examScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+      aiScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+    })
   })
 })
