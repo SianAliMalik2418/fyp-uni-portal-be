@@ -40,6 +40,7 @@
 ## Backend Verification
 
 - After backend changes, run the relevant Bun-backed scripts from `BE/`, such as `bun run test`, `bun run build`, `bun run lint`, and `bun run format:check`.
+- Always use the `simplify` skill before handing backend work over for review.
 
 ## Backend Testing
 
