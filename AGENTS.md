@@ -23,6 +23,19 @@
 - Keep request validation in `src/validators`.
 - Keep Express middleware in `src/middlewares`.
 - Keep environment and database setup in `src/config`.
+- Do not combine route registration, validation, controllers, business logic, and Mongoose models in one file. Each backend feature should follow the existing route/controller/service/model/validator split.
+- Before adding a backend feature, inspect a similar completed feature such as `departments`, `programs`, or `users`, and mirror its structure unless there is a concrete reason to differ.
+- Keep controllers thin: parse/validate request input, call services, and return JSON. Put relationship checks, duplicate checks, persistence behavior, and transaction-like workflows in services.
+
+## Backend Structure Checklist
+
+Before handing off backend work, verify:
+
+- New endpoints are mounted through `src/routes/index.ts` and feature route files under `src/routes`.
+- Request body/params validation lives in `src/validators`, not inline inside controllers.
+- Controllers do not contain Mongoose query workflows beyond calling a service.
+- Services own persistence and business rules, and models stay under `src/models`.
+- Route tests cover the HTTP contract and authorization for new routes.
 
 ## API and Security Rules
 
