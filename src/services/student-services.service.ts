@@ -1,5 +1,6 @@
 import type { UserRole } from '../models/user.model.js'
-import { UserModel } from '../models/user.model.js'
+import { UserModel, type UserDocument } from '../models/user.model.js'
+import { listStudentCourses, type SerializedCourseOffering } from './course.service.js'
 import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 
@@ -18,6 +19,7 @@ export type StudentServiceContext = {
   currentSemester: SerializedSemester | null
   availableSections: SerializedSection[]
   student: StudentServiceStudentContext | null
+  enrolledCourses: SerializedCourseOffering[]
   timetableScope: StudentServiceStructureScope
   examScope: StudentServiceStructureScope
   aiScope: StudentServiceStructureScope
@@ -158,6 +160,23 @@ async function getLoggedInStudentContext(
   }
 }
 
+async function getLoggedInStudentCourses(
+  userId: string,
+  role: UserRole
+): Promise<SerializedCourseOffering[]> {
+  if (role !== 'student') {
+    return []
+  }
+
+  const student = await UserModel.findById(userId).select('-passwordHash').exec()
+
+  if (!student || student.role !== 'student') {
+    return []
+  }
+
+  return listStudentCourses(student as unknown as UserDocument)
+}
+
 function scopeFromStudent(student: StudentServiceStudentContext | null) {
   if (!student) {
     return null
@@ -174,10 +193,11 @@ export async function getStudentServiceContext(
   userId: string,
   role: UserRole
 ): Promise<StudentServiceContext> {
-  const [semesters, sections, student] = await Promise.all([
+  const [semesters, sections, student, enrolledCourses] = await Promise.all([
     listSemesters(),
     listSections(),
     getLoggedInStudentContext(userId, role),
+    getLoggedInStudentCourses(userId, role),
   ])
   const currentSemester =
     semesters.find((semester) => semester.isActive && !semester.isClosed) ?? null
@@ -205,6 +225,7 @@ export async function getStudentServiceContext(
     currentSemester,
     availableSections,
     student,
+    enrolledCourses,
     timetableScope: scope,
     examScope: scope,
     aiScope:

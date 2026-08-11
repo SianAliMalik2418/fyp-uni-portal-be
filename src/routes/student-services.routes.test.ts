@@ -18,6 +18,10 @@ vi.mock('../services/semester.service.js', () => ({
   listSemesters: vi.fn(),
 }))
 
+vi.mock('../services/course.service.js', () => ({
+  listStudentCourses: vi.fn(),
+}))
+
 vi.mock('../models/user.model.js', () => ({
   studentAcademicStatuses: ['active', 'frozen', 'repeating', 'dropped', 'graduated'],
   userRoles: ['student', 'teacher', 'hod', 'admin'],
@@ -37,6 +41,7 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const courseService = await import('../services/course.service.js')
 const sectionService = await import('../services/section.service.js')
 const semesterService = await import('../services/semester.service.js')
 const userModel = await import('../models/user.model.js')
@@ -107,6 +112,46 @@ const studentDocument = {
   },
 }
 
+const enrolledCourse = {
+  id: '507f1f77bcf86cd799439020',
+  course: {
+    id: '507f1f77bcf86cd799439021',
+    code: 'AI',
+    title: 'Artificial Intelligence',
+    creditHours: 3,
+    department: {
+      id: '507f1f77bcf86cd799439022',
+      name: 'Computer Science',
+      code: 'CS',
+      isActive: true,
+    },
+    program: activeSection.program,
+    semester: activeSection.semester,
+    isActive: true,
+  },
+  section: {
+    id: activeSection.id,
+    name: activeSection.name,
+    program: activeSection.program,
+    semester: activeSection.semester,
+    isActive: true,
+  },
+  teacher: {
+    id: '507f1f77bcf86cd799439023',
+    fullName: 'Hammad Teacher',
+    email: 'hammad.teacher@example.com',
+    employeeId: 'EMP-042',
+    department: {
+      id: '507f1f77bcf86cd799439022',
+      name: 'Computer Science',
+      code: 'CS',
+      isActive: true,
+    },
+  },
+  studentCount: 36,
+  isActive: true,
+}
+
 function mockStudentLookup(student: unknown = studentDocument) {
   const query = {
     select: vi.fn().mockReturnThis(),
@@ -120,6 +165,7 @@ function mockStudentLookup(student: unknown = studentDocument) {
 describe('student services placeholder routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(courseService.listStudentCourses).mockReset()
     vi.mocked(sectionService.listSections).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
     vi.mocked(userModel.UserModel.findById).mockReset()
@@ -193,6 +239,7 @@ describe('student services placeholder routes', () => {
       currentSemester,
       availableSections: [activeSection],
       student: null,
+      enrolledCourses: [],
       timetableScope: {
         canReferenceProgram: true,
         canReferenceSemester: true,
@@ -215,6 +262,7 @@ describe('student services placeholder routes', () => {
     authenticateAs('student')
     vi.mocked(semesterService.listSemesters).mockResolvedValue([currentSemester])
     vi.mocked(sectionService.listSections).mockResolvedValue([activeSection])
+    vi.mocked(courseService.listStudentCourses).mockResolvedValue([enrolledCourse])
     mockStudentLookup()
 
     const response = await request(app)
@@ -245,6 +293,7 @@ describe('student services placeholder routes', () => {
           name: activeSection.name,
         },
       },
+      enrolledCourses: [enrolledCourse],
       timetableScope: {
         canReferenceProgram: true,
         canReferenceSemester: true,
