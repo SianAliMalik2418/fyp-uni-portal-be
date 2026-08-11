@@ -4,6 +4,7 @@ import {
   getStudentServicePlaceholder,
   type StudentServiceModule,
 } from '../services/student-services.service.js'
+import { ApiError } from '../utils/api-error.js'
 import { asyncHandler } from '../utils/async-handler.js'
 
 function createStudentServiceController(module: StudentServiceModule): RequestHandler {
@@ -20,8 +21,14 @@ export const getAnnouncementsPlaceholder = createStudentServiceController('annou
 export const getNotificationsPlaceholder = createStudentServiceController('notifications')
 export const getAiAssistantPlaceholder = createStudentServiceController('ai-assistant')
 
-export const getStudentServiceContextController = asyncHandler(async (_req, res) => {
-  const context = await getStudentServiceContext()
+export const getStudentServiceContextController = asyncHandler(async (req, res) => {
+  const auth = req.auth
+
+  if (!auth) {
+    throw new ApiError(401, 'Authentication required')
+  }
+
+  const context = await getStudentServiceContext(auth.user.id, auth.user.role)
 
   res.status(200).json(context)
 })

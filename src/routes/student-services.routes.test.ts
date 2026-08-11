@@ -18,6 +18,14 @@ vi.mock('../services/semester.service.js', () => ({
   listSemesters: vi.fn(),
 }))
 
+vi.mock('../models/user.model.js', () => ({
+  studentAcademicStatuses: ['active', 'frozen', 'repeating', 'dropped', 'graduated'],
+  userRoles: ['student', 'teacher', 'hod', 'admin'],
+  UserModel: {
+    findById: vi.fn(),
+  },
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -31,6 +39,7 @@ type MockUserDocument = {
 const authService = await import('../services/auth.service.js')
 const sectionService = await import('../services/section.service.js')
 const semesterService = await import('../services/semester.service.js')
+const userModel = await import('../models/user.model.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -84,11 +93,36 @@ const activeSection = {
   isActive: true,
 }
 
+const studentDocument = {
+  id: baseUser.id,
+  fullName: 'Portal User',
+  email: 'user@example.com',
+  role: 'student',
+  registrationNumber: 'NCBAE-2023-CS-001',
+  program: activeSection.program,
+  semester: activeSection.semester,
+  section: {
+    id: activeSection.id,
+    name: activeSection.name,
+  },
+}
+
+function mockStudentLookup(student: unknown = studentDocument) {
+  const query = {
+    select: vi.fn().mockReturnThis(),
+    populate: vi.fn().mockReturnThis(),
+    exec: vi.fn().mockResolvedValue(student),
+  }
+
+  vi.mocked(userModel.UserModel.findById).mockReturnValue(query as never)
+}
+
 describe('student services placeholder routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
     vi.mocked(sectionService.listSections).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
+    vi.mocked(userModel.UserModel.findById).mockReset()
   })
 
   it('returns the fees placeholder for authenticated students', async () => {
@@ -158,6 +192,7 @@ describe('student services placeholder routes', () => {
     expect(response.body).toEqual({
       currentSemester,
       availableSections: [activeSection],
+      student: null,
       timetableScope: {
         canReferenceProgram: true,
         canReferenceSemester: true,
@@ -172,6 +207,89 @@ describe('student services placeholder routes', () => {
         canReferenceProgram: true,
         canReferenceSemester: true,
         canReferenceSection: true,
+      },
+    })
+  })
+
+  it('returns the logged-in student identity and academic references', async () => {
+    authenticateAs('student')
+    vi.mocked(semesterService.listSemesters).mockResolvedValue([currentSemester])
+    vi.mocked(sectionService.listSections).mockResolvedValue([activeSection])
+    mockStudentLookup()
+
+    const response = await request(app)
+      .get('/api/student-services/context')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toEqual({
+      currentSemester,
+      availableSections: [activeSection],
+      student: {
+        userId: baseUser.id,
+        name: 'Portal User',
+        email: 'user@example.com',
+        registrationNumber: 'NCBAE-2023-CS-001',
+        program: {
+          id: activeSection.program.id,
+          name: activeSection.program.name,
+          code: activeSection.program.code,
+        },
+        semester: {
+          id: activeSection.semester.id,
+          name: activeSection.semester.name,
+          academicYear: activeSection.semester.academicYear,
+        },
+        section: {
+          id: activeSection.id,
+          name: activeSection.name,
+        },
+      },
+      timetableScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+      examScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+      aiScope: {
+        canReferenceProgram: true,
+        canReferenceSemester: true,
+        canReferenceSection: true,
+      },
+    })
+  })
+
+  it('keeps student service scopes unresolved when the logged-in student profile is missing', async () => {
+    authenticateAs('student')
+    vi.mocked(semesterService.listSemesters).mockResolvedValue([currentSemester])
+    vi.mocked(sectionService.listSections).mockResolvedValue([activeSection])
+    mockStudentLookup(null)
+
+    const response = await request(app)
+      .get('/api/student-services/context')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toMatchObject({
+      student: null,
+      timetableScope: {
+        canReferenceProgram: false,
+        canReferenceSemester: false,
+        canReferenceSection: false,
+      },
+      examScope: {
+        canReferenceProgram: false,
+        canReferenceSemester: false,
+        canReferenceSection: false,
+      },
+      aiScope: {
+        canReferenceProgram: false,
+        canReferenceSemester: false,
+        canReferenceSection: false,
       },
     })
   })
