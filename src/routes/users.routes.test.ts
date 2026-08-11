@@ -14,7 +14,11 @@ vi.mock('../services/auth.service.js', () => ({
 
 vi.mock('../services/user.service.js', () => ({
   createUser: vi.fn(),
+  deleteUser: vi.fn(),
+  getUser: vi.fn(),
   listUsers: vi.fn(),
+  resetUserPassword: vi.fn(),
+  updateUser: vi.fn(),
   DEFAULT_TEMPORARY_PASSWORD: '@Abc1234',
 }))
 
@@ -64,7 +68,11 @@ describe('users routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
     vi.mocked(userService.createUser).mockReset()
+    vi.mocked(userService.deleteUser).mockReset()
+    vi.mocked(userService.getUser).mockReset()
     vi.mocked(userService.listUsers).mockReset()
+    vi.mocked(userService.resetUserPassword).mockReset()
+    vi.mocked(userService.updateUser).mockReset()
   })
 
   it('lists provisioned users for admins', async () => {
@@ -95,6 +103,8 @@ describe('users routes', () => {
         email: 'teacher@example.com',
         role: 'teacher',
         employeeId: 'EMP-001',
+        departmentId: '507f1f77bcf86cd799439012',
+        designation: 'Lecturer',
       })
       .expect(201)
 
@@ -103,12 +113,38 @@ describe('users routes', () => {
       email: 'teacher@example.com',
       role: 'teacher',
       employeeId: 'EMP-001',
+      departmentId: '507f1f77bcf86cd799439012',
+      designation: 'Lecturer',
       isActive: true,
     })
     expect(response.body).toEqual({
       message: 'User account created',
       user: teacherAccount,
       temporaryPassword: '@Abc1234',
+    })
+  })
+
+  it('lets authenticated users read their own profile', async () => {
+    authenticateAs({ ...adminDocument, role: 'student' })
+    vi.mocked(userService.getUser).mockResolvedValue({
+      ...teacherAccount,
+      id: adminDocument.id,
+      fullName: 'Sian Student',
+      email: 'student@example.com',
+      role: 'student',
+      registrationNumber: 'REG-001',
+    })
+
+    const response = await request(app)
+      .get('/api/users/me')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(userService.getUser).toHaveBeenCalledWith(adminDocument.id)
+    expect(response.body.user).toMatchObject({
+      fullName: 'Sian Student',
+      role: 'student',
+      registrationNumber: 'REG-001',
     })
   })
 
@@ -142,6 +178,75 @@ describe('users routes', () => {
       .expect(400)
 
     expect(userService.createUser).not.toHaveBeenCalled()
+  })
+
+  it('updates user profiles for admins', async () => {
+    authenticateAs(adminDocument)
+    vi.mocked(userService.updateUser).mockResolvedValue({
+      ...teacherAccount,
+      designation: 'Assistant Professor',
+    })
+
+    const response = await request(app)
+      .patch('/api/users/507f1f77bcf86cd799439012')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({
+        fullName: 'Sian Teacher',
+        email: 'teacher@example.com',
+        role: 'teacher',
+        employeeId: 'EMP-001',
+        departmentId: '507f1f77bcf86cd799439013',
+        designation: 'Assistant Professor',
+        isActive: true,
+      })
+      .expect(200)
+
+    expect(userService.updateUser).toHaveBeenCalledWith('507f1f77bcf86cd799439012', {
+      fullName: 'Sian Teacher',
+      email: 'teacher@example.com',
+      role: 'teacher',
+      employeeId: 'EMP-001',
+      departmentId: '507f1f77bcf86cd799439013',
+      designation: 'Assistant Professor',
+      isActive: true,
+    })
+    expect(response.body).toEqual({
+      message: 'User account updated',
+      user: { ...teacherAccount, designation: 'Assistant Professor' },
+    })
+  })
+
+  it('resets user passwords for admins', async () => {
+    authenticateAs(adminDocument)
+    vi.mocked(userService.resetUserPassword).mockResolvedValue({
+      user: teacherAccount,
+      temporaryPassword: '@Abc1234',
+    })
+
+    const response = await request(app)
+      .patch('/api/users/507f1f77bcf86cd799439012/reset-password')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(userService.resetUserPassword).toHaveBeenCalledWith('507f1f77bcf86cd799439012')
+    expect(response.body).toEqual({
+      message: 'Temporary password issued',
+      user: teacherAccount,
+      temporaryPassword: '@Abc1234',
+    })
+  })
+
+  it('deletes user accounts for admins', async () => {
+    authenticateAs(adminDocument)
+    vi.mocked(userService.deleteUser).mockResolvedValue()
+
+    const response = await request(app)
+      .delete('/api/users/507f1f77bcf86cd799439012')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(userService.deleteUser).toHaveBeenCalledWith('507f1f77bcf86cd799439012')
+    expect(response.body).toEqual({ message: 'User account deleted' })
   })
 
   it('blocks non-admin users from provisioning accounts', async () => {
