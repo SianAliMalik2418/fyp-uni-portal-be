@@ -17,8 +17,8 @@ export const getAssessmentsPlaceholder = createAcademicPerformanceController('as
 export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
 
-export const getAcademicPerformanceContextController = asyncHandler(async (_req, res) => {
-  const context = await getAcademicPerformanceContext()
+export const getAcademicPerformanceContextController = asyncHandler(async (req, res) => {
+  const context = await getAcademicPerformanceContext(req.auth?.user.id)
 
   res.status(200).json(context)
 })

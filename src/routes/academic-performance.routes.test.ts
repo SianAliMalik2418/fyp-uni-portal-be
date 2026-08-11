@@ -18,6 +18,14 @@ vi.mock('../services/semester.service.js', () => ({
   listSemesters: vi.fn(),
 }))
 
+vi.mock('../models/user.model.js', () => ({
+  studentAcademicStatuses: ['active', 'frozen', 'repeating', 'dropped', 'graduated'],
+  userRoles: ['student', 'teacher', 'hod', 'admin'],
+  UserModel: {
+    find: vi.fn(),
+  },
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -31,6 +39,7 @@ type MockUserDocument = {
 const authService = await import('../services/auth.service.js')
 const sectionService = await import('../services/section.service.js')
 const semesterService = await import('../services/semester.service.js')
+const userModel = await import('../models/user.model.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -84,11 +93,43 @@ const activeSection = {
   isActive: true,
 }
 
+const studentDocument = {
+  id: baseUser.id,
+  fullName: 'Ayesha Noor',
+  registrationNumber: 'NCBAE-2023-CS-001',
+  academicStatus: 'active',
+  isActive: true,
+  department: {
+    id: '507f1f77bcf86cd799439018',
+    name: 'Computer Science',
+    code: 'CS',
+  },
+  program: activeSection.program,
+  batch: activeSection.batch,
+  semester: activeSection.semester,
+  section: {
+    id: activeSection.id,
+    name: activeSection.name,
+  },
+}
+
+function mockStudentRoster(students: unknown[] = []) {
+  const query = {
+    sort: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    populate: vi.fn().mockReturnThis(),
+    exec: vi.fn().mockResolvedValue(students),
+  }
+
+  vi.mocked(userModel.UserModel.find).mockReturnValue(query as never)
+}
+
 describe('academic performance placeholder routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
     vi.mocked(sectionService.listSections).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
+    vi.mocked(userModel.UserModel.find).mockReset()
   })
 
   it('returns the attendance placeholder for authenticated students', async () => {
@@ -145,7 +186,7 @@ describe('academic performance placeholder routes', () => {
   })
 
   it('returns current semester and active structure context for performance modules', async () => {
-    authenticateAs('teacher')
+    authenticateAs('student')
     vi.mocked(semesterService.listSemesters).mockResolvedValue([
       currentSemester,
       {
@@ -164,6 +205,7 @@ describe('academic performance placeholder routes', () => {
         isActive: false,
       },
     ])
+    mockStudentRoster([studentDocument])
 
     const response = await request(app)
       .get('/api/academic-performance/context')
@@ -173,8 +215,43 @@ describe('academic performance placeholder routes', () => {
     expect(response.body).toEqual({
       currentSemester,
       activeSections: [activeSection],
-      studentSection: null,
-      canResolveStudentSection: false,
+      studentSection: {
+        id: activeSection.id,
+        name: activeSection.name,
+      },
+      students: [
+        {
+          id: baseUser.id,
+          name: 'Ayesha Noor',
+          registrationNumber: 'NCBAE-2023-CS-001',
+          academicStatus: 'active',
+          isActive: true,
+          department: {
+            id: '507f1f77bcf86cd799439018',
+            name: 'Computer Science',
+            code: 'CS',
+          },
+          program: {
+            id: activeSection.program.id,
+            name: activeSection.program.name,
+            code: activeSection.program.code,
+          },
+          batch: {
+            id: activeSection.batch.id,
+            name: activeSection.batch.name,
+          },
+          semester: {
+            id: activeSection.semester.id,
+            name: activeSection.semester.name,
+            academicYear: activeSection.semester.academicYear,
+          },
+          section: {
+            id: activeSection.id,
+            name: activeSection.name,
+          },
+        },
+      ],
+      canResolveStudentSection: true,
     })
   })
 })
