@@ -13,6 +13,7 @@ import {
 import { ApiError } from '../utils/api-error.js'
 import type { CreateUserPayload, UpdateUserPayload } from '../validators/user.validator.js'
 import { hashPassword } from './auth.service.js'
+import { syncStudentEnrollments } from './course.service.js'
 
 export const DEFAULT_TEMPORARY_PASSWORD = '@Abc1234'
 
@@ -371,6 +372,7 @@ export async function createUser(payload: CreateUserPayload): Promise<CreatedUse
 
   assignUserProfile(user, payload, references)
   await user.save()
+  await syncStudentEnrollments(user.id)
 
   return {
     user: serializeUserAccount(await populateUserProfile(user)),
@@ -385,6 +387,7 @@ export async function updateUser(userId: string, payload: UpdateUserPayload) {
   const references = await resolveProfileReferences(payload)
   assignUserProfile(user, payload, references)
   await user.save()
+  await syncStudentEnrollments(user.id)
 
   return serializeUserAccount(await populateUserProfile(user))
 }

@@ -8,6 +8,7 @@ import {
 } from './academic-performance.routes.js'
 import { authRoutes } from './auth.routes.js'
 import { batchesRoutes } from './batches.routes.js'
+import { coursesRoutes } from './courses.routes.js'
 import { departmentsRoutes } from './departments.routes.js'
 import { healthRoutes } from './health.routes.js'
 import { programsRoutes } from './programs.routes.js'
@@ -29,6 +30,7 @@ export const apiRoutes = Router()
 
 apiRoutes.use('/auth', authRoutes)
 apiRoutes.use('/batches', batchesRoutes)
+apiRoutes.use('/courses', coursesRoutes)
 apiRoutes.use('/departments', departmentsRoutes)
 apiRoutes.use('/health', healthRoutes)
 apiRoutes.use('/programs', programsRoutes)
