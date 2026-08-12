@@ -47,6 +47,15 @@ describe('student dashboard routes', () => {
       attendance: {
         summaries: [{ attendancePercentage: 62.5, isBelowThreshold: true }],
       },
+      academics: {
+        recentMarks: [],
+        summary: {
+          publishedAssessments: 0,
+          coursesWithMarks: 0,
+          averagePercentage: 0,
+          weightedPercentage: 0,
+        },
+      },
     } as never)
 
     const response = await request(app)
@@ -60,6 +69,15 @@ describe('student dashboard routes', () => {
     expect(response.body).toEqual({
       attendance: {
         summaries: [{ attendancePercentage: 62.5, isBelowThreshold: true }],
+      },
+      academics: {
+        recentMarks: [],
+        summary: {
+          publishedAssessments: 0,
+          coursesWithMarks: 0,
+          averagePercentage: 0,
+          weightedPercentage: 0,
+        },
       },
     })
   })
