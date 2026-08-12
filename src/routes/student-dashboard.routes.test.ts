@@ -56,6 +56,8 @@ describe('student dashboard routes', () => {
           weightedPercentage: 0,
         },
       },
+      results: { latest: null, gpa: 0, cgpa: 0 },
+      notifications: [],
     } as never)
 
     const response = await request(app)
@@ -79,6 +81,8 @@ describe('student dashboard routes', () => {
           weightedPercentage: 0,
         },
       },
+      results: { latest: null, gpa: 0, cgpa: 0 },
+      notifications: [],
     })
   })
 

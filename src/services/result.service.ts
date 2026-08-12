@@ -12,26 +12,9 @@ import {
 } from './academic-performance.service.js'
 import { getWeightedMarksSummary, type StudentWeightedSummary } from './assessment.service.js'
 import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
-
-export type GradeDefinition = {
-  minimumPercentage: number
-  letterGrade: string
-  gradePoint: number
-}
-
-// Keep result calculation available until the grading-scale settings are stored.
-export const defaultGradingScale: GradeDefinition[] = [
-  { minimumPercentage: 85, letterGrade: 'A', gradePoint: 4 },
-  { minimumPercentage: 80, letterGrade: 'A-', gradePoint: 3.7 },
-  { minimumPercentage: 75, letterGrade: 'B+', gradePoint: 3.3 },
-  { minimumPercentage: 70, letterGrade: 'B', gradePoint: 3 },
-  { minimumPercentage: 65, letterGrade: 'B-', gradePoint: 2.7 },
-  { minimumPercentage: 61, letterGrade: 'C+', gradePoint: 2.3 },
-  { minimumPercentage: 58, letterGrade: 'C', gradePoint: 2 },
-  { minimumPercentage: 55, letterGrade: 'C-', gradePoint: 1.7 },
-  { minimumPercentage: 50, letterGrade: 'D', gradePoint: 1 },
-  { minimumPercentage: 0, letterGrade: 'F', gradePoint: 0 },
-]
+import { getGradingScale, mapPercentageToGrade } from './grading-scale.service.js'
+import { publishResultNotifications } from './notification.service.js'
+import type { GradeRange } from '../models/grading-configuration.model.js'
 
 export type SerializedResultRecord = {
   student: AcademicPerformanceStudent
@@ -93,19 +76,6 @@ function relationId(value: unknown) {
   return null
 }
 
-export function mapPercentageToGrade(
-  percentage: number,
-  gradingScale = defaultGradingScale
-): Pick<GradeDefinition, 'letterGrade' | 'gradePoint'> {
-  const grade = gradingScale.find((definition) => percentage >= definition.minimumPercentage)
-
-  if (!grade) {
-    throw new ApiError(500, 'The grading scale does not cover this result percentage')
-  }
-
-  return { letterGrade: grade.letterGrade, gradePoint: grade.gradePoint }
-}
-
 export function calculateCreditWeightedGpa(
   courses: Array<{ creditHours: number; gradePoint: number }>
 ) {
@@ -142,12 +112,15 @@ function createStatistics(records: SerializedResultRecord[]): ResultStatistics {
   }
 }
 
-function calculateRecords(summaries: StudentWeightedSummary[]): SerializedResultRecord[] {
+function calculateRecords(
+  summaries: StudentWeightedSummary[],
+  gradingScale: GradeRange[]
+): SerializedResultRecord[] {
   return summaries.map((summary) => ({
     student: summary.student,
     categories: summary.categories,
     finalPercentage: summary.weightedTotal,
-    ...mapPercentageToGrade(summary.weightedTotal),
+    ...mapPercentageToGrade(summary.weightedTotal, gradingScale),
   }))
 }
 
@@ -210,16 +183,18 @@ export async function getCourseResult(user: UserDocument, offeringId: string) {
     throw new ApiError(403, 'Students can only access approved published results')
   }
 
-  const [{ offering, students }, summaries, result, assessmentCount] = await Promise.all([
-    listAcademicPerformanceOfferingStudents(user, offeringId),
-    getWeightedMarksSummary(user, offeringId),
-    ResultModel.findOne({ courseOffering: offeringId }).exec(),
-    AssessmentModel.countDocuments({ courseOffering: offeringId }).exec(),
-  ])
+  const [{ offering, students }, summaries, result, assessmentCount, gradingScale] =
+    await Promise.all([
+      listAcademicPerformanceOfferingStudents(user, offeringId),
+      getWeightedMarksSummary(user, offeringId),
+      ResultModel.findOne({ courseOffering: offeringId }).exec(),
+      AssessmentModel.countDocuments({ courseOffering: offeringId }).exec(),
+      getGradingScale(),
+    ])
   const records =
     result?.status === 'pending' || result?.status === 'approved'
       ? storedRecords(result, students)
-      : calculateRecords(summaries)
+      : calculateRecords(summaries, gradingScale.ranges)
 
   return serializeResult(
     offering,
@@ -234,11 +209,12 @@ export async function submitCourseResult(teacher: UserDocument, offeringId: stri
     throw new ApiError(403, 'Teacher result submission required')
   }
 
-  const [context, summaries, current, assessmentCount] = await Promise.all([
+  const [context, summaries, current, assessmentCount, gradingScale] = await Promise.all([
     listAcademicPerformanceOfferingStudents(teacher, offeringId),
     getWeightedMarksSummary(teacher, offeringId),
     ResultModel.findOne({ courseOffering: offeringId }).exec(),
     AssessmentModel.countDocuments({ courseOffering: offeringId }).exec(),
+    getGradingScale(),
   ])
 
   if (!summaries.length) throw new ApiError(400, 'A result requires at least one enrolled student')
@@ -250,7 +226,7 @@ export async function submitCourseResult(teacher: UserDocument, offeringId: stri
     throw new ApiError(409, 'This result is locked and cannot be submitted')
   }
 
-  const records = calculateRecords(summaries)
+  const records = calculateRecords(summaries, gradingScale.ranges)
   const now = new Date()
   const result = await ResultModel.findOneAndUpdate(
     { courseOffering: offeringId },
@@ -280,6 +256,10 @@ export async function submitCourseResult(teacher: UserDocument, offeringId: stri
 export async function approveCourseResult(hod: UserDocument, resultId: string) {
   if (hod.role !== 'hod') throw new ApiError(403, 'HOD result approval required')
   const result = await findResultForAction(hod, resultId)
+  if (result.status === 'approved') {
+    await publishResultNotifications(result)
+    return getCourseResult(hod, result.courseOffering.toString())
+  }
   if (result.status !== 'pending') {
     throw new ApiError(409, 'Only pending results can be approved')
   }
@@ -291,6 +271,7 @@ export async function approveCourseResult(hod: UserDocument, resultId: string) {
   result.hodComment = undefined
   result.history.push({ action: 'approved', actor: hod._id, occurredAt: now })
   await result.save()
+  await publishResultNotifications(result)
 
   return getCourseResult(hod, result.courseOffering.toString())
 }

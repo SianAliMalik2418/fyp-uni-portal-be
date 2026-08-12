@@ -119,6 +119,59 @@ export const resultCommentPayloadSchema = z.object({
     .max(1000, 'The reason cannot exceed 1000 characters'),
 })
 
+const gradeRangeSchema = z
+  .object({
+    minimumPercentage: z.number().min(0).max(100).multipleOf(0.01),
+    maximumPercentage: z.number().min(0).max(100).multipleOf(0.01),
+    letterGrade: z.string().trim().min(1, 'Letter grade is required').max(10),
+    gradePoint: z.number().min(0).max(4).multipleOf(0.01),
+  })
+  .refine((range) => range.minimumPercentage <= range.maximumPercentage, {
+    message: 'Minimum percentage cannot exceed maximum percentage',
+    path: ['maximumPercentage'],
+  })
+
+export const gradingScalePayloadSchema = z
+  .object({
+    ranges: z.array(gradeRangeSchema).min(1, 'At least one grade range is required').max(20),
+  })
+  .superRefine((payload, context) => {
+    const ranges = payload.ranges.toSorted(
+      (left, right) => left.minimumPercentage - right.minimumPercentage
+    )
+    const grades = new Set(payload.ranges.map((range) => range.letterGrade.toUpperCase()))
+
+    if (grades.size !== payload.ranges.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ranges'],
+        message: 'Letter grades must be unique',
+      })
+    }
+
+    if (ranges[0]?.minimumPercentage !== 0 || ranges.at(-1)?.maximumPercentage !== 100) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ranges'],
+        message: 'The grading scale must cover 0 through 100 percent',
+      })
+    }
+
+    for (let index = 1; index < ranges.length; index += 1) {
+      const previousMaximum = Math.round(ranges[index - 1]!.maximumPercentage * 100)
+      const currentMinimum = Math.round(ranges[index]!.minimumPercentage * 100)
+
+      if (currentMinimum !== previousMaximum + 1) {
+        context.addIssue({
+          code: 'custom',
+          path: ['ranges'],
+          message: 'Grade ranges must not overlap or leave percentage gaps',
+        })
+        break
+      }
+    }
+  })
+
 export type AttendanceSessionParams = z.infer<typeof attendanceSessionParamsSchema>
 export type AttendanceSessionsQuery = z.infer<typeof attendanceSessionsQuerySchema>
 export type AttendanceSessionPayload = z.infer<typeof attendanceSessionPayloadSchema>
@@ -127,3 +180,4 @@ export type AssessmentPayload = z.infer<typeof assessmentPayloadSchema>
 export type AssessmentConfigurationPayload = z.infer<typeof assessmentConfigurationPayloadSchema>
 export type MarkSheetPayload = z.infer<typeof markSheetPayloadSchema>
 export type ResultCommentPayload = z.infer<typeof resultCommentPayloadSchema>
+export type GradingScalePayload = z.infer<typeof gradingScalePayloadSchema>

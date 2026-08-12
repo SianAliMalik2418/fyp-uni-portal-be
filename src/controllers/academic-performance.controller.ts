@@ -31,6 +31,7 @@ import {
   returnCourseResult,
   submitCourseResult,
 } from '../services/result.service.js'
+import { getGradingScale, updateGradingScale } from '../services/grading-scale.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   academicPerformanceOfferingParamsSchema,
@@ -45,6 +46,7 @@ import {
   markSheetPayloadSchema,
   resultCommentPayloadSchema,
   resultParamsSchema,
+  gradingScalePayloadSchema,
 } from '../validators/academic-performance.validator.js'
 
 function createAcademicPerformanceController(module: AcademicPerformanceModule): RequestHandler {
@@ -93,6 +95,17 @@ export const reopenCourseResultController = asyncHandler(async (req, res) => {
 export const getPublishedStudentResultsController = asyncHandler(async (req, res) => {
   const results = await getPublishedStudentResults(req.auth!.user)
   res.status(200).json(results)
+})
+
+export const getGradingScaleController = asyncHandler(async (_req, res) => {
+  const gradingScale = await getGradingScale()
+  res.status(200).json({ gradingScale })
+})
+
+export const updateGradingScaleController = asyncHandler(async (req, res) => {
+  const payload = gradingScalePayloadSchema.parse(req.body)
+  const gradingScale = await updateGradingScale(payload)
+  res.status(200).json({ message: 'Grading scale updated.', gradingScale })
 })
 
 export const getAssessmentStructureController = asyncHandler(async (_req, res) => {

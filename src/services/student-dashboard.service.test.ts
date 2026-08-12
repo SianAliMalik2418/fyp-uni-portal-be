@@ -8,8 +8,18 @@ vi.mock('./student-marks.service.js', () => ({
   listPublishedStudentMarks: vi.fn(),
 }))
 
+vi.mock('./result.service.js', () => ({
+  getPublishedStudentResults: vi.fn(),
+}))
+
+vi.mock('./notification.service.js', () => ({
+  listNotifications: vi.fn(),
+}))
+
 const academicPerformanceService = await import('./academic-performance.service.js')
 const studentMarksService = await import('./student-marks.service.js')
+const resultService = await import('./result.service.js')
+const notificationService = await import('./notification.service.js')
 const { getStudentDashboardSummary } = await import('./student-dashboard.service.js')
 
 describe('student dashboard service', () => {
@@ -37,6 +47,11 @@ describe('student dashboard service', () => {
         weightedPercentage: 0,
       },
     })
+    vi.mocked(resultService.getPublishedStudentResults).mockResolvedValue({
+      semesters: [],
+      cgpa: 0,
+    })
+    vi.mocked(notificationService.listNotifications).mockResolvedValue([])
 
     const dashboard = await getStudentDashboardSummary(student as never)
 
@@ -54,6 +69,12 @@ describe('student dashboard service', () => {
           weightedPercentage: 0,
         },
       },
+      results: {
+        latest: null,
+        gpa: 0,
+        cgpa: 0,
+      },
+      notifications: [],
     })
   })
 })

@@ -6,7 +6,8 @@ import {
   getExamsPlaceholder,
   getFeesPlaceholder,
   getMaterialsPlaceholder,
-  getNotificationsPlaceholder,
+  listNotificationsController,
+  markNotificationReadController,
   getStudentServiceContextController,
   getTimetablePlaceholder,
 } from '../controllers/student-services.controller.js'
@@ -38,10 +39,13 @@ export const announcementsRoutes = createStudentServiceRoutes(
   'announcements',
   getAnnouncementsPlaceholder
 )
-export const notificationsRoutes = createStudentServiceRoutes(
-  'notifications',
-  getNotificationsPlaceholder
+export const notificationsRoutes = Router()
+notificationsRoutes.use(
+  requireAuth,
+  requireRoles(...getStudentServiceAllowedRoles('notifications'))
 )
+notificationsRoutes.get('/', listNotificationsController)
+notificationsRoutes.patch('/:notificationId/read', markNotificationReadController)
 export const aiAssistantRoutes = createStudentServiceRoutes(
   'ai-assistant',
   getAiAssistantPlaceholder

@@ -30,6 +30,11 @@ vi.mock('../models/user.model.js', () => ({
   },
 }))
 
+vi.mock('../services/notification.service.js', () => ({
+  listNotifications: vi.fn(),
+  markNotificationRead: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -45,6 +50,7 @@ const courseService = await import('../services/course.service.js')
 const sectionService = await import('../services/section.service.js')
 const semesterService = await import('../services/semester.service.js')
 const userModel = await import('../models/user.model.js')
+const notificationService = await import('../services/notification.service.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -223,6 +229,37 @@ describe('student services placeholder routes', () => {
       .get('/api/notifications')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(403)
+  })
+
+  it('returns the current user notifications and marks an owned notification read', async () => {
+    authenticateAs('student')
+    const notification = {
+      id: '507f1f77bcf86cd799439030',
+      type: 'result_published',
+      title: 'Result published',
+      message: 'Programming Fundamentals has been approved.',
+      isRead: false,
+    }
+    vi.mocked(notificationService.listNotifications).mockResolvedValue([notification] as never)
+    vi.mocked(notificationService.markNotificationRead).mockResolvedValue({
+      ...notification,
+      isRead: true,
+    } as never)
+
+    const listResponse = await request(app)
+      .get('/api/notifications')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+    await request(app)
+      .patch(`/api/notifications/${notification.id}/read`)
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(listResponse.body.notifications).toEqual([notification])
+    expect(notificationService.markNotificationRead).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseUser.id }),
+      notification.id
+    )
   })
 
   it('returns academic structure context for timetable, exam, and AI references', async () => {

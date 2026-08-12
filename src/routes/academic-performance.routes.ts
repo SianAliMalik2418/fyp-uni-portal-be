@@ -17,6 +17,8 @@ import {
   returnCourseResultController,
   reopenCourseResultController,
   getPublishedStudentResultsController,
+  getGradingScaleController,
+  updateGradingScaleController,
   getStudentAttendanceSummariesController,
   listAttendanceHistoryController,
   listAcademicPerformanceOfferingStudentsController,
@@ -87,6 +89,8 @@ marksRoutes.put('/:assessmentId/draft', requireRoles('teacher'), saveMarkSheetDr
 
 resultsRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('results')))
 resultsRoutes.get('/', getResultsPlaceholder)
+resultsRoutes.get('/grading-scale', requireRoles('admin'), getGradingScaleController)
+resultsRoutes.put('/grading-scale', requireRoles('admin'), updateGradingScaleController)
 resultsRoutes.get('/student', requireRoles('student'), getPublishedStudentResultsController)
 resultsRoutes.get(
   '/course/:offeringId',

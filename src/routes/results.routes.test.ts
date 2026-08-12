@@ -43,6 +43,11 @@ vi.mock('../services/result.service.js', () => ({
   submitCourseResult: vi.fn(),
 }))
 
+vi.mock('../services/grading-scale.service.js', () => ({
+  getGradingScale: vi.fn(),
+  updateGradingScale: vi.fn(),
+}))
+
 type MockUser = {
   id: string
   _id: string
@@ -55,6 +60,7 @@ type MockUser = {
 
 const authService = await import('../services/auth.service.js')
 const resultService = await import('../services/result.service.js')
+const gradingScaleService = await import('../services/grading-scale.service.js')
 const { app } = await import('../app.js')
 
 const user: MockUser = {
@@ -99,6 +105,49 @@ describe('result routes', () => {
       offeringId
     )
     expect(response.body.message).toBe('Result submitted for HOD approval.')
+  })
+
+  it('lets an administrator configure a complete non-overlapping grading scale', async () => {
+    authenticateAs('admin')
+    const payload = {
+      ranges: [
+        { minimumPercentage: 50, maximumPercentage: 100, letterGrade: 'P', gradePoint: 4 },
+        { minimumPercentage: 0, maximumPercentage: 49.99, letterGrade: 'F', gradePoint: 0 },
+      ],
+    }
+    vi.mocked(gradingScaleService.updateGradingScale).mockResolvedValue(payload as never)
+
+    await request(app)
+      .put('/api/results/grading-scale')
+      .set('Cookie', ['portal_session=token'])
+      .send(payload)
+      .expect(200)
+
+    expect(gradingScaleService.updateGradingScale).toHaveBeenCalledWith(payload)
+  })
+
+  it('rejects grading scales with gaps and blocks non-admin updates', async () => {
+    authenticateAs('admin')
+    const invalidPayload = {
+      ranges: [
+        { minimumPercentage: 60, maximumPercentage: 100, letterGrade: 'P', gradePoint: 4 },
+        { minimumPercentage: 0, maximumPercentage: 49.99, letterGrade: 'F', gradePoint: 0 },
+      ],
+    }
+
+    await request(app)
+      .put('/api/results/grading-scale')
+      .set('Cookie', ['portal_session=token'])
+      .send(invalidPayload)
+      .expect(400)
+
+    authenticateAs('hod')
+    await request(app)
+      .put('/api/results/grading-scale')
+      .set('Cookie', ['portal_session=token'])
+      .send(invalidPayload)
+      .expect(403)
+    expect(gradingScaleService.updateGradingScale).not.toHaveBeenCalled()
   })
 
   it('lets an HOD approve or return a pending result with comments', async () => {

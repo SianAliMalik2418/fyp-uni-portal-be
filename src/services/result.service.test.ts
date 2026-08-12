@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calculateCreditWeightedGpa, mapPercentageToGrade } from './result.service.js'
+import { calculateCreditWeightedGpa } from './result.service.js'
+import { mapPercentageToGrade } from './grading-scale.service.js'
 
 describe('result calculations', () => {
   it('maps boundary percentages to the configured letter grade and grade point', () => {
