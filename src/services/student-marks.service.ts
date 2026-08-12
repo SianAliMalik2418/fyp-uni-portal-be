@@ -1,4 +1,3 @@
-import type { Types } from 'mongoose'
 import type { AssessmentCategory, AssessmentDocument } from '../models/assessment.model.js'
 import { MarkSheetModel, type MarkStatus } from '../models/mark-sheet.model.js'
 import type { UserDocument } from '../models/user.model.js'
@@ -42,8 +41,12 @@ function isPopulatedOffering(
   return Boolean(value && typeof value === 'object' && 'course' in value && 'section' in value)
 }
 
-function studentId(value: Types.ObjectId | UserDocument) {
-  return typeof value === 'object' && 'id' in value ? value.id : value.toString()
+function studentId(value: unknown) {
+  if (value && typeof value === 'object' && '_id' in value) {
+    return String(value._id)
+  }
+
+  return String(value)
 }
 
 function round(value: number) {
@@ -63,6 +66,12 @@ export async function listPublishedStudentMarks(
       'records.student': student._id,
     })
       .sort({ updatedAt: -1 })
+      .select({
+        assessment: 1,
+        courseOffering: 1,
+        updatedAt: 1,
+        records: { $elemMatch: { student: student._id } },
+      })
       .populate('assessment')
       .populate({
         path: 'courseOffering',
@@ -111,9 +120,7 @@ export async function listPublishedStudentMarks(
   const scoredMarks = publishedMarks.filter((mark) => mark.percentage !== undefined)
   const courseIds = new Set(publishedMarks.map((mark) => mark.offering.id))
   const weightedPercentage = structure.categories.reduce((total, category) => {
-    const categoryMarks = scoredMarks.filter(
-      (mark) => mark.assessment.category === category.id
-    )
+    const categoryMarks = scoredMarks.filter((mark) => mark.assessment.category === category.id)
 
     if (!categoryMarks.length) {
       return total
@@ -131,9 +138,7 @@ export async function listPublishedStudentMarks(
       publishedAssessments: publishedMarks.length,
       coursesWithMarks: courseIds.size,
       averagePercentage: scoredMarks.length
-        ? round(
-            scoredMarks.reduce((sum, mark) => sum + mark.percentage!, 0) / scoredMarks.length
-          )
+        ? round(scoredMarks.reduce((sum, mark) => sum + mark.percentage!, 0) / scoredMarks.length)
         : 0,
       weightedPercentage: round(weightedPercentage),
     },

@@ -27,6 +27,7 @@ const student = {
 function mockSheets(sheets: unknown[]) {
   const query = {
     sort: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
     populate: vi.fn().mockReturnThis(),
     exec: vi.fn().mockResolvedValue(sheets),
   }
@@ -51,13 +52,19 @@ describe('published student marks', () => {
   })
 
   it('queries only published sheets belonging to the signed-in student', async () => {
-    mockSheets([])
+    const query = mockSheets([])
 
     const result = await listPublishedStudentMarks(student as never)
 
     expect(markSheetModel.MarkSheetModel.find).toHaveBeenCalledWith({
       isDraft: false,
       'records.student': student._id,
+    })
+    expect(query.select).toHaveBeenCalledWith({
+      assessment: 1,
+      courseOffering: 1,
+      updatedAt: 1,
+      records: { $elemMatch: { student: student._id } },
     })
     expect(result).toEqual({
       recentMarks: [],

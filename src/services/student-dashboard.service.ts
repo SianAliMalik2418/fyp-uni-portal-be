@@ -3,10 +3,7 @@ import {
   getStudentAttendanceSummaries,
   type AttendanceCourseSummary,
 } from './academic-performance.service.js'
-import {
-  listPublishedStudentMarks,
-  type PublishedStudentMarks,
-} from './student-marks.service.js'
+import { listPublishedStudentMarks, type PublishedStudentMarks } from './student-marks.service.js'
 
 export type StudentDashboardSummary = {
   attendance: {
