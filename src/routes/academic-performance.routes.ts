@@ -3,9 +3,13 @@ import {
   getAttendanceSessionController,
   getAttendanceConfigurationController,
   getAcademicPerformanceContextController,
-  getAssessmentsPlaceholder,
   getAttendancePlaceholder,
-  getMarksPlaceholder,
+  getAssessmentCategoriesController,
+  createAssessmentController,
+  listAssessmentsController,
+  getMarkSheetController,
+  saveMarkSheetDraftController,
+  getWeightedMarksSummaryController,
   getResultsPlaceholder,
   getStudentAttendanceSummariesController,
   listAttendanceHistoryController,
@@ -64,10 +68,14 @@ assessmentsRoutes.use(
   requireAuth,
   requireRoles(...getAcademicPerformanceAllowedRoles('assessments'))
 )
-assessmentsRoutes.get('/', getAssessmentsPlaceholder)
+assessmentsRoutes.get('/categories', getAssessmentCategoriesController)
+assessmentsRoutes.get('/', listAssessmentsController)
+assessmentsRoutes.post('/', requireRoles('teacher'), createAssessmentController)
 
 marksRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('marks')))
-marksRoutes.get('/', getMarksPlaceholder)
+marksRoutes.get('/summary', getWeightedMarksSummaryController)
+marksRoutes.get('/:assessmentId', getMarkSheetController)
+marksRoutes.put('/:assessmentId/draft', requireRoles('teacher'), saveMarkSheetDraftController)
 
 resultsRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('results')))
 resultsRoutes.get('/', getResultsPlaceholder)

@@ -14,6 +14,14 @@ import {
   updateAttendanceConfiguration,
   type AcademicPerformanceModule,
 } from '../services/academic-performance.service.js'
+import {
+  createAssessment,
+  getAssessmentCategories,
+  getMarkSheet,
+  getWeightedMarksSummary,
+  listAssessments,
+  saveMarkSheetDraft,
+} from '../services/assessment.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   academicPerformanceOfferingParamsSchema,
@@ -21,6 +29,10 @@ import {
   attendanceSessionParamsSchema,
   attendanceSessionPayloadSchema,
   attendanceSessionsQuerySchema,
+  assessmentParamsSchema,
+  assessmentPayloadSchema,
+  assessmentsQuerySchema,
+  markSheetPayloadSchema,
 } from '../validators/academic-performance.validator.js'
 
 function createAcademicPerformanceController(module: AcademicPerformanceModule): RequestHandler {
@@ -33,6 +45,46 @@ export const getAttendancePlaceholder = createAcademicPerformanceController('att
 export const getAssessmentsPlaceholder = createAcademicPerformanceController('assessments')
 export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
+
+export const getAssessmentCategoriesController: RequestHandler = (_req, res) => {
+  res.status(200).json({ categories: getAssessmentCategories() })
+}
+
+export const createAssessmentController = asyncHandler(async (req, res) => {
+  const payload = assessmentPayloadSchema.parse(req.body)
+  const assessment = await createAssessment(req.auth!.user, payload)
+
+  res.status(201).json({ message: 'Assessment created successfully.', assessment })
+})
+
+export const listAssessmentsController = asyncHandler(async (req, res) => {
+  const { offeringId } = assessmentsQuerySchema.parse(req.query)
+  const assessments = await listAssessments(req.auth!.user, offeringId)
+
+  res.status(200).json({ assessments })
+})
+
+export const getMarkSheetController = asyncHandler(async (req, res) => {
+  const { assessmentId } = assessmentParamsSchema.parse(req.params)
+  const sheet = await getMarkSheet(req.auth!.user, assessmentId)
+
+  res.status(200).json({ sheet })
+})
+
+export const saveMarkSheetDraftController = asyncHandler(async (req, res) => {
+  const { assessmentId } = assessmentParamsSchema.parse(req.params)
+  const payload = markSheetPayloadSchema.parse(req.body)
+  const sheet = await saveMarkSheetDraft(req.auth!.user, assessmentId, payload)
+
+  res.status(200).json({ message: 'Marks draft saved successfully.', sheet })
+})
+
+export const getWeightedMarksSummaryController = asyncHandler(async (req, res) => {
+  const { offeringId } = assessmentsQuerySchema.parse(req.query)
+  const summaries = await getWeightedMarksSummary(req.auth!.user, offeringId)
+
+  res.status(200).json({ summaries })
+})
 
 export const getAttendanceConfigurationController = asyncHandler(async (_req, res) => {
   const configuration = await getAttendanceConfiguration()
