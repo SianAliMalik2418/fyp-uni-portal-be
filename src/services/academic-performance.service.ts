@@ -1,5 +1,10 @@
 import { isValidObjectId, Types } from 'mongoose'
 import {
+  AttendanceSessionModel,
+  type AttendanceSessionDocument,
+  type AttendanceStatus,
+} from '../models/attendance-session.model.js'
+import {
   CourseOfferingModel,
   type CourseOfferingDocument,
 } from '../models/course-offering.model.js'
@@ -10,6 +15,7 @@ import { serializeCourseOffering, type SerializedCourseOffering } from './course
 import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 import { ApiError } from '../utils/api-error.js'
+import type { AttendanceSessionPayload } from '../validators/academic-performance.validator.js'
 
 export type AcademicPerformanceModule = 'attendance' | 'assessments' | 'marks' | 'results'
 
@@ -32,6 +38,36 @@ export type AcademicPerformanceContext = {
 export type AcademicPerformanceOfferingStudents = {
   offering: SerializedCourseOffering
   students: AcademicPerformanceStudent[]
+}
+
+export type SerializedAttendanceRecord = {
+  student: AcademicPerformanceStudent
+  status: AttendanceStatus
+}
+
+export type SerializedAttendanceSession = {
+  id: string
+  offering: SerializedCourseOffering
+  date: string
+  records: SerializedAttendanceRecord[]
+  studentCount: number
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export type AttendanceCourseSummary = {
+  offering: SerializedCourseOffering
+  totalClasses: number
+  present: number
+  absent: number
+  leave: number
+  attendancePercentage: number
+  requiredPercentage: number
+  isBelowThreshold: boolean
+}
+
+export type AttendanceShortage = AttendanceCourseSummary & {
+  student: AcademicPerformanceStudent
 }
 
 export type AcademicPerformanceStudentRelation = {
@@ -83,6 +119,8 @@ const placeholders: Record<
     allowedRoles: ['student', 'teacher', 'hod', 'admin'],
   },
 }
+
+const DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE = 75
 
 export function getAcademicPerformancePlaceholder(
   module: AcademicPerformanceModule
@@ -143,6 +181,13 @@ function relationId(value: unknown) {
   return null
 }
 
+function objectIdEquals(left: unknown, right: unknown) {
+  const leftId = relationId(left)
+  const rightId = relationId(right)
+
+  return Boolean(leftId && rightId && leftId === rightId)
+}
+
 function isPopulatedAcademicStudent(value: unknown): value is {
   id: string
   fullName: string
@@ -160,6 +205,10 @@ function isPopulatedAcademicStudent(value: unknown): value is {
 
 function isPopulatedOfferingCourse(value: unknown): value is { department: unknown } {
   return Boolean(value && typeof value === 'object' && 'department' in value)
+}
+
+function isPopulatedCourseOffering(value: unknown): value is CourseOfferingDocument {
+  return Boolean(value && typeof value === 'object' && 'course' in value && 'section' in value)
 }
 
 function serializeAcademicStudent(student: {
@@ -185,6 +234,109 @@ function serializeAcademicStudent(student: {
     batch: serializeStudentRelation(student.batch),
     semester: serializeStudentRelation(student.semester),
     section: serializeStudentRelation(student.section),
+  }
+}
+
+function normalizeAttendanceDate(value: string) {
+  const date = new Date(`${value}T00:00:00.000Z`)
+
+  if (Number.isNaN(date.getTime())) {
+    throw new ApiError(400, 'Invalid attendance date')
+  }
+
+  return {
+    date,
+    dateKey: date.toISOString().slice(0, 10),
+  }
+}
+
+async function populateAttendanceSession(session: AttendanceSessionDocument) {
+  await session.populate([
+    {
+      path: 'courseOffering',
+      populate: [
+        { path: 'course', populate: ['department', 'program', 'semester'] },
+        { path: 'section', populate: ['program', 'semester'] },
+        { path: 'teacher', populate: ['department'] },
+      ],
+    },
+    {
+      path: 'records.student',
+      select:
+        'fullName registrationNumber department program batch semester section academicStatus isActive',
+      populate: ['department', 'program', 'batch', 'semester', 'section'],
+    },
+  ])
+
+  return session
+}
+
+async function serializeAttendanceSession(
+  session: AttendanceSessionDocument
+): Promise<SerializedAttendanceSession> {
+  if (!isPopulatedCourseOffering(session.courseOffering)) {
+    throw new ApiError(500, 'Attendance course offering was not loaded')
+  }
+
+  const records = session.records.map((record) => {
+    if (!isPopulatedAcademicStudent(record.student)) {
+      throw new ApiError(500, 'Attendance student records were not loaded')
+    }
+
+    return {
+      student: serializeAcademicStudent(record.student),
+      status: record.status,
+    }
+  })
+
+  return {
+    id: session.id,
+    offering: await serializeCourseOffering(session.courseOffering),
+    date: session.dateKey,
+    records,
+    studentCount: records.length,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+  }
+}
+
+async function listActiveEnrollmentStudents(offeringId: Types.ObjectId | string) {
+  const enrollments = await EnrollmentModel.find({ courseOffering: offeringId, isActive: true })
+    .populate({
+      path: 'student',
+      select:
+        'fullName registrationNumber department program batch semester section academicStatus isActive',
+      populate: ['department', 'program', 'batch', 'semester', 'section'],
+    })
+    .exec()
+
+  return (enrollments.map((enrollment) => enrollment.student) as unknown[]).filter(
+    isPopulatedAcademicStudent
+  )
+}
+
+async function assertAttendanceRecordsMatchEnrollment(
+  offeringId: Types.ObjectId | string,
+  records: AttendanceSessionPayload['records']
+) {
+  const enrolledStudents = await listActiveEnrollmentStudents(offeringId)
+  const enrolledStudentIds = new Set(enrolledStudents.map((student) => student.id))
+  const submittedStudentIds = new Set(records.map((record) => record.studentId))
+
+  if (submittedStudentIds.size !== records.length) {
+    throw new ApiError(400, 'Attendance records cannot include duplicate students')
+  }
+
+  for (const record of records) {
+    ensureValidObjectId(record.studentId, 'student')
+
+    if (!enrolledStudentIds.has(record.studentId)) {
+      throw new ApiError(400, 'Attendance can only be saved for enrolled students')
+    }
+  }
+
+  if (submittedStudentIds.size !== enrolledStudentIds.size) {
+    throw new ApiError(400, 'Attendance must include every enrolled student')
   }
 }
 
@@ -414,4 +566,258 @@ export async function listAcademicPerformanceOfferingStudents(
     offering: await serializeCourseOffering(offering),
     students,
   }
+}
+
+export async function saveAttendanceSession(
+  teacher: UserDocument,
+  payload: AttendanceSessionPayload
+) {
+  if (teacher.role !== 'teacher') {
+    throw new ApiError(403, 'Teacher attendance access required')
+  }
+
+  const offering = await assertCanAccessCourseOffering(teacher, payload.offeringId)
+  await assertAttendanceRecordsMatchEnrollment(offering._id, payload.records)
+
+  const { date, dateKey } = normalizeAttendanceDate(payload.date)
+  const records = payload.records.map((record) => ({
+    student: new Types.ObjectId(record.studentId),
+    status: record.status,
+  }))
+
+  const session = await AttendanceSessionModel.findOneAndUpdate(
+    { courseOffering: offering._id, dateKey },
+    {
+      $set: {
+        courseOffering: offering._id,
+        section: offering.section,
+        teacher: teacher._id,
+        date,
+        dateKey,
+        records,
+      },
+    },
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  ).exec()
+
+  return serializeAttendanceSession(await populateAttendanceSession(session!))
+}
+
+export async function updateAttendanceSession(
+  teacher: UserDocument,
+  sessionId: string,
+  payload: AttendanceSessionPayload
+) {
+  if (teacher.role !== 'teacher') {
+    throw new ApiError(403, 'Teacher attendance access required')
+  }
+
+  ensureValidObjectId(sessionId, 'attendance session')
+  const existingSession = await AttendanceSessionModel.findById(sessionId).exec()
+
+  if (!existingSession) {
+    throw new ApiError(404, 'Attendance session not found')
+  }
+
+  if (!objectIdEquals(existingSession.teacher, teacher._id)) {
+    throw new ApiError(403, 'Teacher can only edit assigned attendance sessions')
+  }
+
+  if (!objectIdEquals(existingSession.courseOffering, payload.offeringId)) {
+    throw new ApiError(400, 'Attendance session course offering cannot be changed')
+  }
+
+  await assertAttendanceRecordsMatchEnrollment(existingSession.courseOffering, payload.records)
+
+  const { date, dateKey } = normalizeAttendanceDate(payload.date)
+  existingSession.date = date
+  existingSession.dateKey = dateKey
+  existingSession.records = payload.records.map((record) => ({
+    student: new Types.ObjectId(record.studentId),
+    status: record.status,
+  }))
+
+  await existingSession.save()
+
+  return serializeAttendanceSession(await populateAttendanceSession(existingSession))
+}
+
+export async function listAttendanceHistory(user: UserDocument, offeringId?: string) {
+  if (user.role === 'student') {
+    throw new ApiError(403, 'Student attendance history is available through course summaries')
+  }
+
+  const offerings = await listAcademicPerformanceOfferings(user)
+  const offeringIds = new Set(offerings.map((offering) => offering.id))
+
+  if (offeringId) {
+    ensureValidObjectId(offeringId, 'course offering')
+
+    if (!offeringIds.has(offeringId)) {
+      throw new ApiError(403, 'Unauthorized course offering access')
+    }
+  }
+
+  const sessions = await AttendanceSessionModel.find({
+    courseOffering: offeringId ?? { $in: [...offeringIds] },
+  })
+    .sort({ dateKey: -1, createdAt: -1 })
+    .populate({
+      path: 'courseOffering',
+      populate: [
+        { path: 'course', populate: ['department', 'program', 'semester'] },
+        { path: 'section', populate: ['program', 'semester'] },
+        { path: 'teacher', populate: ['department'] },
+      ],
+    })
+    .populate({
+      path: 'records.student',
+      select:
+        'fullName registrationNumber department program batch semester section academicStatus isActive',
+      populate: ['department', 'program', 'batch', 'semester', 'section'],
+    })
+    .exec()
+
+  return Promise.all(
+    sessions.map((session) => serializeAttendanceSession(session as AttendanceSessionDocument))
+  )
+}
+
+export async function getAttendanceSession(user: UserDocument, sessionId: string) {
+  ensureValidObjectId(sessionId, 'attendance session')
+  const session = await AttendanceSessionModel.findById(sessionId).exec()
+
+  if (!session) {
+    throw new ApiError(404, 'Attendance session not found')
+  }
+
+  await assertCanAccessCourseOffering(user, session.courseOffering.toString())
+
+  return serializeAttendanceSession(await populateAttendanceSession(session))
+}
+
+function attendancePercentage(present: number, totalClasses: number) {
+  if (totalClasses === 0) {
+    return 0
+  }
+
+  return Math.round((present / totalClasses) * 10000) / 100
+}
+
+function summarizeAttendanceRecords(
+  offering: SerializedCourseOffering,
+  student: AcademicPerformanceStudent,
+  sessions: AttendanceSessionDocument[]
+): AttendanceCourseSummary {
+  const totals = {
+    present: 0,
+    absent: 0,
+    leave: 0,
+  }
+
+  for (const session of sessions) {
+    const record = session.records.find((item) => objectIdEquals(item.student, student.id))
+
+    if (record) {
+      totals[record.status] += 1
+    }
+  }
+
+  const totalClasses = totals.present + totals.absent + totals.leave
+  const percentage = attendancePercentage(totals.present, totalClasses)
+
+  return {
+    offering,
+    totalClasses,
+    present: totals.present,
+    absent: totals.absent,
+    leave: totals.leave,
+    attendancePercentage: percentage,
+    requiredPercentage: DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE,
+    isBelowThreshold: totalClasses > 0 && percentage < DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE,
+  }
+}
+
+export async function getStudentAttendanceSummaries(
+  student: UserDocument
+): Promise<AttendanceCourseSummary[]> {
+  if (student.role !== 'student') {
+    throw new ApiError(403, 'Student attendance access required')
+  }
+
+  const enrollments = await EnrollmentModel.find({ student: student._id, isActive: true })
+    .populate({
+      path: 'courseOffering',
+      match: { isActive: true },
+      populate: [
+        { path: 'course', populate: ['department', 'program', 'semester'] },
+        { path: 'section', populate: ['program', 'semester'] },
+        { path: 'teacher', populate: ['department'] },
+      ],
+    })
+    .populate({
+      path: 'student',
+      select:
+        'fullName registrationNumber department program batch semester section academicStatus isActive',
+      populate: ['department', 'program', 'batch', 'semester', 'section'],
+    })
+    .exec()
+
+  const studentRecord = (enrollments.map((enrollment) => enrollment.student) as unknown[]).find(
+    isPopulatedAcademicStudent
+  )
+
+  if (!studentRecord) {
+    return []
+  }
+
+  const offerings = (
+    enrollments.map((enrollment) => enrollment.courseOffering) as unknown[]
+  ).filter(isPopulatedCourseOffering)
+
+  const sessions = await AttendanceSessionModel.find({
+    courseOffering: { $in: offerings.map((offering) => offering._id) },
+  }).exec()
+  const serializedStudent = serializeAcademicStudent(studentRecord)
+  const serializedOfferings = await Promise.all(
+    offerings.map((offering) => serializeCourseOffering(offering))
+  )
+
+  return serializedOfferings.map((offering) =>
+    summarizeAttendanceRecords(
+      offering,
+      serializedStudent,
+      sessions.filter((session) => objectIdEquals(session.courseOffering, offering.id))
+    )
+  )
+}
+
+export async function listLowAttendanceStudents(user: UserDocument): Promise<AttendanceShortage[]> {
+  if (user.role !== 'hod' && user.role !== 'admin') {
+    throw new ApiError(403, 'HOD attendance access required')
+  }
+
+  const offerings = await listAcademicPerformanceOfferings(user)
+  const sessions = await AttendanceSessionModel.find({
+    courseOffering: { $in: offerings.map((offering) => offering.id) },
+  }).exec()
+
+  const shortageGroups = await Promise.all(
+    offerings.map(async (offering) => {
+      const { students } = await listAcademicPerformanceOfferingStudents(user, offering.id)
+      const offeringSessions = sessions.filter((session) =>
+        objectIdEquals(session.courseOffering, offering.id)
+      )
+
+      return students.map((student) => ({
+        student,
+        ...summarizeAttendanceRecords(offering, student, offeringSessions),
+      }))
+    })
+  )
+
+  return shortageGroups
+    .flat()
+    .filter((summary) => summary.isBelowThreshold)
+    .sort((left, right) => left.attendancePercentage - right.attendancePercentage)
 }
