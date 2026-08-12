@@ -292,4 +292,16 @@ describe('attendance routes', () => {
 
     expect(academicPerformanceService.updateAttendanceConfiguration).not.toHaveBeenCalled()
   })
+
+  it('rejects attendance thresholds outside the allowed range', async () => {
+    authenticateAs({ ...teacherDocument, role: 'admin' })
+
+    await request(app)
+      .put('/api/attendance/configuration')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({ minimumAttendancePercentage: 101 })
+      .expect(400)
+
+    expect(academicPerformanceService.updateAttendanceConfiguration).not.toHaveBeenCalled()
+  })
 })

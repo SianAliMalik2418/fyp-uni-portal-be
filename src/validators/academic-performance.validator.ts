@@ -39,6 +39,4 @@ export const attendanceConfigurationPayloadSchema = z.object({
 export type AttendanceSessionParams = z.infer<typeof attendanceSessionParamsSchema>
 export type AttendanceSessionsQuery = z.infer<typeof attendanceSessionsQuerySchema>
 export type AttendanceSessionPayload = z.infer<typeof attendanceSessionPayloadSchema>
-export type AttendanceConfigurationPayload = z.infer<
-  typeof attendanceConfigurationPayloadSchema
->
+export type AttendanceConfigurationPayload = z.infer<typeof attendanceConfigurationPayloadSchema>
