@@ -25,6 +25,7 @@ import {
   timetableRoutes,
 } from './student-services.routes.js'
 import { usersRoutes } from './users.routes.js'
+import { studentDashboardRoutes } from './student-dashboard.routes.js'
 
 export const apiRoutes = Router()
 
@@ -47,6 +48,7 @@ apiRoutes.use('/timetable', timetableRoutes)
 apiRoutes.use('/exams', examsRoutes)
 apiRoutes.use('/materials', materialsRoutes)
 apiRoutes.use('/student-services', studentServicesRoutes)
+apiRoutes.use('/student-dashboard', studentDashboardRoutes)
 apiRoutes.use('/announcements', announcementsRoutes)
 apiRoutes.use('/notifications', notificationsRoutes)
 apiRoutes.use('/ai-assistant', aiAssistantRoutes)
