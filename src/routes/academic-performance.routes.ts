@@ -4,7 +4,7 @@ import {
   getAttendanceConfigurationController,
   getAcademicPerformanceContextController,
   getAttendancePlaceholder,
-  getAssessmentCategoriesController,
+  getAssessmentStructureController,
   createAssessmentController,
   listAssessmentsController,
   getMarkSheetController,
@@ -19,6 +19,7 @@ import {
   saveAttendanceSessionController,
   updateAttendanceSessionController,
   updateAttendanceConfigurationController,
+  updateAssessmentStructureController,
 } from '../controllers/academic-performance.controller.js'
 import { requireAuth, requireRoles } from '../middlewares/auth.middleware.js'
 import { getAcademicPerformanceAllowedRoles } from '../services/academic-performance.service.js'
@@ -68,7 +69,8 @@ assessmentsRoutes.use(
   requireAuth,
   requireRoles(...getAcademicPerformanceAllowedRoles('assessments'))
 )
-assessmentsRoutes.get('/categories', getAssessmentCategoriesController)
+assessmentsRoutes.get('/structure', getAssessmentStructureController)
+assessmentsRoutes.put('/structure', requireRoles('admin'), updateAssessmentStructureController)
 assessmentsRoutes.get('/', listAssessmentsController)
 assessmentsRoutes.post('/', requireRoles('teacher'), createAssessmentController)
 

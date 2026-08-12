@@ -30,11 +30,15 @@ vi.mock('../services/academic-performance.service.js', () => ({
 
 vi.mock('../services/assessment.service.js', () => ({
   createAssessment: vi.fn(),
-  getAssessmentCategories: vi.fn(() => [{ id: 'quiz', label: 'Quizzes', weightPercentage: 10 }]),
+  getAssessmentStructure: vi.fn(() => ({
+    categories: [{ id: 'quiz', label: 'Quizzes', weightPercentage: 10 }],
+    totalPercentage: 100,
+  })),
   getMarkSheet: vi.fn(),
   getWeightedMarksSummary: vi.fn(),
   listAssessments: vi.fn(),
   saveMarkSheetDraft: vi.fn(),
+  updateAssessmentStructure: vi.fn(),
 }))
 
 type MockUser = {
@@ -77,13 +81,61 @@ describe('assessment and marks routes', () => {
     authenticateAs(teacher)
 
     const response = await request(app)
-      .get('/api/assessments/categories')
+      .get('/api/assessments/structure')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(200)
 
-    expect(response.body.categories).toEqual([
-      { id: 'quiz', label: 'Quizzes', weightPercentage: 10 },
-    ])
+    expect(response.body.structure).toEqual({
+      categories: [{ id: 'quiz', label: 'Quizzes', weightPercentage: 10 }],
+      totalPercentage: 100,
+    })
+  })
+
+  it('lets admins save a valid university-wide assessment structure', async () => {
+    authenticateAs({ ...teacher, role: 'admin' })
+    const payload = {
+      categories: [
+        { id: 'quiz', weightPercentage: 10 },
+        { id: 'assignment', weightPercentage: 10 },
+        { id: 'attendance', weightPercentage: 10 },
+        { id: 'presentation', weightPercentage: 10 },
+        { id: 'midterm', weightPercentage: 25 },
+        { id: 'final', weightPercentage: 35 },
+      ],
+    }
+    const structure = { categories: payload.categories, totalPercentage: 100 }
+    vi.mocked(assessmentService.updateAssessmentStructure).mockResolvedValue(structure as never)
+
+    const response = await request(app)
+      .put('/api/assessments/structure')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send(payload)
+      .expect(200)
+
+    expect(assessmentService.updateAssessmentStructure).toHaveBeenCalledWith(payload)
+    expect(response.body).toEqual({ message: 'Assessment structure updated.', structure })
+  })
+
+  it('rejects an assessment structure whose weights do not total 100 percent', async () => {
+    authenticateAs({ ...teacher, role: 'admin' })
+
+    const response = await request(app)
+      .put('/api/assessments/structure')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({
+        categories: [
+          { id: 'quiz', weightPercentage: 10 },
+          { id: 'assignment', weightPercentage: 10 },
+          { id: 'attendance', weightPercentage: 10 },
+          { id: 'presentation', weightPercentage: 10 },
+          { id: 'midterm', weightPercentage: 25 },
+          { id: 'final', weightPercentage: 30 },
+        ],
+      })
+      .expect(400)
+
+    expect(response.body.message).toBe('Validation failed')
+    expect(assessmentService.updateAssessmentStructure).not.toHaveBeenCalled()
   })
 
   it('creates multiple-category assessments through the teacher contract', async () => {

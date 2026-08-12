@@ -56,6 +56,43 @@ export const assessmentPayloadSchema = z.object({
     .max(1000, 'Maximum marks cannot exceed 1000'),
 })
 
+const assessmentCategoryWeightSchema = z.object({
+  id: z.enum(assessmentCategories),
+  weightPercentage: z
+    .number()
+    .positive('Category weight must be greater than zero')
+    .max(100, 'Category weight cannot exceed 100')
+    .multipleOf(0.01, 'Category weight can have at most two decimal places'),
+})
+
+export const assessmentConfigurationPayloadSchema = z
+  .object({
+    categories: z
+      .array(assessmentCategoryWeightSchema)
+      .length(assessmentCategories.length, 'Every assessment category must have a weight'),
+  })
+  .superRefine((payload, context) => {
+    const ids = new Set(payload.categories.map((category) => category.id))
+
+    if (ids.size !== assessmentCategories.length) {
+      context.addIssue({
+        code: 'custom',
+        path: ['categories'],
+        message: 'Every assessment category must appear exactly once',
+      })
+    }
+
+    const total = payload.categories.reduce((sum, category) => sum + category.weightPercentage, 0)
+
+    if (Math.abs(total - 100) > 0.001) {
+      context.addIssue({
+        code: 'custom',
+        path: ['categories'],
+        message: 'Assessment category weights must total 100%',
+      })
+    }
+  })
+
 export const markRecordSchema = z
   .object({
     studentId: z.string().trim().min(1, 'Student ID is required'),
@@ -75,4 +112,5 @@ export type AttendanceSessionsQuery = z.infer<typeof attendanceSessionsQuerySche
 export type AttendanceSessionPayload = z.infer<typeof attendanceSessionPayloadSchema>
 export type AttendanceConfigurationPayload = z.infer<typeof attendanceConfigurationPayloadSchema>
 export type AssessmentPayload = z.infer<typeof assessmentPayloadSchema>
+export type AssessmentConfigurationPayload = z.infer<typeof assessmentConfigurationPayloadSchema>
 export type MarkSheetPayload = z.infer<typeof markSheetPayloadSchema>

@@ -1,5 +1,10 @@
 import { isValidObjectId, Types } from 'mongoose'
 import {
+  ASSESSMENT_CONFIGURATION_KEY,
+  AssessmentConfigurationModel,
+  type AssessmentCategoryWeight,
+} from '../models/assessment-configuration.model.js'
+import {
   AssessmentModel,
   type AssessmentCategory,
   type AssessmentDocument,
@@ -8,6 +13,7 @@ import { MarkSheetModel, type MarkStatus } from '../models/mark-sheet.model.js'
 import type { UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
 import type {
+  AssessmentConfigurationPayload,
   AssessmentPayload,
   MarkSheetPayload,
 } from '../validators/academic-performance.validator.js'
@@ -22,6 +28,12 @@ export type AssessmentCategoryDefinition = {
   id: AssessmentCategory
   label: string
   weightPercentage: number
+}
+
+export type AssessmentStructure = {
+  categories: AssessmentCategoryDefinition[]
+  totalPercentage: number
+  updatedAt?: Date
 }
 
 export type SerializedAssessment = {
@@ -64,7 +76,7 @@ export type StudentWeightedSummary = {
   missingAssessments: number
 }
 
-export const activeAssessmentCategories: AssessmentCategoryDefinition[] = [
+export const defaultAssessmentCategories: AssessmentCategoryDefinition[] = [
   { id: 'quiz', label: 'Quizzes', weightPercentage: 10 },
   { id: 'assignment', label: 'Assignments', weightPercentage: 10 },
   { id: 'attendance', label: 'Attendance', weightPercentage: 10 },
@@ -72,6 +84,10 @@ export const activeAssessmentCategories: AssessmentCategoryDefinition[] = [
   { id: 'midterm', label: 'Midterm', weightPercentage: 25 },
   { id: 'final', label: 'Final', weightPercentage: 35 },
 ]
+
+const assessmentCategoryLabels = new Map(
+  defaultAssessmentCategories.map((category) => [category.id, category.label])
+)
 
 function ensureValidObjectId(value: string, label: string) {
   if (!isValidObjectId(value)) {
@@ -157,8 +173,47 @@ async function findAccessibleAssessment(user: UserDocument, assessmentId: string
   return assessment
 }
 
-export function getAssessmentCategories() {
-  return activeAssessmentCategories
+function serializeAssessmentStructure(
+  categories: AssessmentCategoryWeight[],
+  updatedAt?: Date
+): AssessmentStructure {
+  const serializedCategories = categories.map((category) => ({
+    id: category.id,
+    label: assessmentCategoryLabels.get(category.id)!,
+    weightPercentage: category.weightPercentage,
+  }))
+
+  return {
+    categories: serializedCategories,
+    totalPercentage: serializedCategories.reduce(
+      (sum, category) => sum + category.weightPercentage,
+      0
+    ),
+    updatedAt,
+  }
+}
+
+export async function getAssessmentStructure(): Promise<AssessmentStructure> {
+  const configuration = await AssessmentConfigurationModel.findOne({
+    key: ASSESSMENT_CONFIGURATION_KEY,
+  }).exec()
+
+  return configuration
+    ? serializeAssessmentStructure(configuration.categories, configuration.updatedAt)
+    : serializeAssessmentStructure(defaultAssessmentCategories)
+}
+
+export async function updateAssessmentStructure(payload: AssessmentConfigurationPayload) {
+  const configuration = await AssessmentConfigurationModel.findOneAndUpdate(
+    { key: ASSESSMENT_CONFIGURATION_KEY },
+    {
+      $set: { categories: payload.categories },
+      $setOnInsert: { key: ASSESSMENT_CONFIGURATION_KEY },
+    },
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  ).exec()
+
+  return serializeAssessmentStructure(configuration!.categories, configuration!.updatedAt)
 }
 
 export async function createAssessment(teacher: UserDocument, payload: AssessmentPayload) {
@@ -166,7 +221,15 @@ export async function createAssessment(teacher: UserDocument, payload: Assessmen
     throw new ApiError(403, 'Teacher assessment access required')
   }
 
-  const offering = await assertCanAccessCourseOffering(teacher, payload.offeringId)
+  const [offering, structure] = await Promise.all([
+    assertCanAccessCourseOffering(teacher, payload.offeringId),
+    getAssessmentStructure(),
+  ])
+
+  if (!structure.categories.some((category) => category.id === payload.category)) {
+    throw new ApiError(400, 'Assessment category is not active')
+  }
+
   const duplicate = await AssessmentModel.findOne({
     courseOffering: offering._id,
     name: payload.name,
@@ -298,8 +361,11 @@ function rounded(value: number) {
 }
 
 export async function getWeightedMarksSummary(user: UserDocument, offeringId: string) {
-  const { students } = await listAcademicPerformanceOfferingStudents(user, offeringId)
-  const assessments = await AssessmentModel.find({ courseOffering: offeringId }).exec()
+  const [{ students }, assessments, structure] = await Promise.all([
+    listAcademicPerformanceOfferingStudents(user, offeringId),
+    AssessmentModel.find({ courseOffering: offeringId }).exec(),
+    getAssessmentStructure(),
+  ])
   const sheets = await MarkSheetModel.find({
     assessment: { $in: assessments.map((assessment) => assessment._id) },
   }).exec()
@@ -309,7 +375,7 @@ export async function getWeightedMarksSummary(user: UserDocument, offeringId: st
 
   return students.map((student): StudentWeightedSummary => {
     let missingAssessments = 0
-    const categories = activeAssessmentCategories.map((definition) => {
+    const categories = structure.categories.map((definition) => {
       let obtainedMarks = 0
       let maximumMarks = 0
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { activeAssessmentCategories } from './assessment.service.js'
+import { defaultAssessmentCategories } from './assessment.service.js'
 
-describe('active assessment categories', () => {
+describe('default assessment categories', () => {
   it('uses the approved university weights totaling 100 percent', () => {
-    expect(activeAssessmentCategories).toEqual([
+    expect(defaultAssessmentCategories).toEqual([
       { id: 'quiz', label: 'Quizzes', weightPercentage: 10 },
       { id: 'assignment', label: 'Assignments', weightPercentage: 10 },
       { id: 'attendance', label: 'Attendance', weightPercentage: 10 },
@@ -12,7 +12,7 @@ describe('active assessment categories', () => {
       { id: 'final', label: 'Final', weightPercentage: 35 },
     ])
     expect(
-      activeAssessmentCategories.reduce((total, category) => total + category.weightPercentage, 0)
+      defaultAssessmentCategories.reduce((total, category) => total + category.weightPercentage, 0)
     ).toBe(100)
   })
 })

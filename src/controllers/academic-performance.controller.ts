@@ -16,11 +16,12 @@ import {
 } from '../services/academic-performance.service.js'
 import {
   createAssessment,
-  getAssessmentCategories,
+  getAssessmentStructure,
   getMarkSheet,
   getWeightedMarksSummary,
   listAssessments,
   saveMarkSheetDraft,
+  updateAssessmentStructure,
 } from '../services/assessment.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
@@ -30,6 +31,7 @@ import {
   attendanceSessionPayloadSchema,
   attendanceSessionsQuerySchema,
   assessmentParamsSchema,
+  assessmentConfigurationPayloadSchema,
   assessmentPayloadSchema,
   assessmentsQuerySchema,
   markSheetPayloadSchema,
@@ -46,9 +48,21 @@ export const getAssessmentsPlaceholder = createAcademicPerformanceController('as
 export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
 
-export const getAssessmentCategoriesController: RequestHandler = (_req, res) => {
-  res.status(200).json({ categories: getAssessmentCategories() })
-}
+export const getAssessmentStructureController = asyncHandler(async (_req, res) => {
+  const structure = await getAssessmentStructure()
+
+  res.status(200).json({ structure })
+})
+
+export const updateAssessmentStructureController = asyncHandler(async (req, res) => {
+  const payload = assessmentConfigurationPayloadSchema.parse(req.body)
+  const structure = await updateAssessmentStructure(payload)
+
+  res.status(200).json({
+    message: 'Assessment structure updated.',
+    structure,
+  })
+})
 
 export const createAssessmentController = asyncHandler(async (req, res) => {
   const payload = assessmentPayloadSchema.parse(req.body)
