@@ -13,6 +13,7 @@ vi.mock('../services/auth.service.js', () => ({
 
 vi.mock('../services/academic-performance.service.js', () => ({
   getAttendanceSession: vi.fn(),
+  getAttendanceConfiguration: vi.fn(),
   getAcademicPerformanceAllowedRoles: vi.fn(() => ['student', 'teacher', 'hod', 'admin']),
   getAcademicPerformanceContext: vi.fn(),
   getAcademicPerformancePlaceholder: vi.fn((module: string) => ({
@@ -29,6 +30,7 @@ vi.mock('../services/academic-performance.service.js', () => ({
   listLowAttendanceStudents: vi.fn(),
   saveAttendanceSession: vi.fn(),
   updateAttendanceSession: vi.fn(),
+  updateAttendanceConfiguration: vi.fn(),
 }))
 
 type MockUserDocument = {
@@ -155,6 +157,8 @@ describe('attendance routes', () => {
     vi.mocked(academicPerformanceService.saveAttendanceSession).mockReset()
     vi.mocked(academicPerformanceService.getStudentAttendanceSummaries).mockReset()
     vi.mocked(academicPerformanceService.listLowAttendanceStudents).mockReset()
+    vi.mocked(academicPerformanceService.getAttendanceConfiguration).mockReset()
+    vi.mocked(academicPerformanceService.updateAttendanceConfiguration).mockReset()
   })
 
   it('lets teachers save attendance sessions', async () => {
@@ -238,5 +242,54 @@ describe('attendance routes', () => {
       attendancePercentage: 50,
       requiredPercentage: 75,
     })
+  })
+
+  it('exposes the configured attendance threshold to authenticated users', async () => {
+    authenticateAs(studentDocument)
+    vi.mocked(academicPerformanceService.getAttendanceConfiguration).mockResolvedValue({
+      minimumAttendancePercentage: 80,
+    })
+
+    const response = await request(app)
+      .get('/api/attendance/configuration')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toEqual({
+      configuration: { minimumAttendancePercentage: 80 },
+    })
+  })
+
+  it('lets admins update the attendance threshold', async () => {
+    authenticateAs({ ...teacherDocument, role: 'admin' })
+    vi.mocked(academicPerformanceService.updateAttendanceConfiguration).mockResolvedValue({
+      minimumAttendancePercentage: 80,
+    })
+
+    const response = await request(app)
+      .put('/api/attendance/configuration')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({ minimumAttendancePercentage: 80 })
+      .expect(200)
+
+    expect(academicPerformanceService.updateAttendanceConfiguration).toHaveBeenCalledWith({
+      minimumAttendancePercentage: 80,
+    })
+    expect(response.body).toEqual({
+      message: 'Attendance settings updated.',
+      configuration: { minimumAttendancePercentage: 80 },
+    })
+  })
+
+  it('prevents teachers from updating the attendance threshold', async () => {
+    authenticateAs(teacherDocument)
+
+    await request(app)
+      .put('/api/attendance/configuration')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({ minimumAttendancePercentage: 80 })
+      .expect(403)
+
+    expect(academicPerformanceService.updateAttendanceConfiguration).not.toHaveBeenCalled()
   })
 })

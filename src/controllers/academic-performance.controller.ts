@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express'
 import {
   getAttendanceSession,
+  getAttendanceConfiguration,
   getAcademicPerformanceContext,
   getAcademicPerformancePlaceholder,
   getStudentAttendanceSummaries,
@@ -10,11 +11,13 @@ import {
   listLowAttendanceStudents,
   saveAttendanceSession,
   updateAttendanceSession,
+  updateAttendanceConfiguration,
   type AcademicPerformanceModule,
 } from '../services/academic-performance.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   academicPerformanceOfferingParamsSchema,
+  attendanceConfigurationPayloadSchema,
   attendanceSessionParamsSchema,
   attendanceSessionPayloadSchema,
   attendanceSessionsQuerySchema,
@@ -30,6 +33,22 @@ export const getAttendancePlaceholder = createAcademicPerformanceController('att
 export const getAssessmentsPlaceholder = createAcademicPerformanceController('assessments')
 export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
+
+export const getAttendanceConfigurationController = asyncHandler(async (_req, res) => {
+  const configuration = await getAttendanceConfiguration()
+
+  res.status(200).json({ configuration })
+})
+
+export const updateAttendanceConfigurationController = asyncHandler(async (req, res) => {
+  const payload = attendanceConfigurationPayloadSchema.parse(req.body)
+  const configuration = await updateAttendanceConfiguration(payload)
+
+  res.status(200).json({
+    message: 'Attendance settings updated.',
+    configuration,
+  })
+})
 
 export const getAcademicPerformanceContextController = asyncHandler(async (req, res) => {
   const context = await getAcademicPerformanceContext(req.auth?.user.id)

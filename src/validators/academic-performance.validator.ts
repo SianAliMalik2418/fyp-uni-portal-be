@@ -28,6 +28,17 @@ export const attendanceSessionPayloadSchema = z.object({
   records: z.array(attendanceRecordSchema).min(1, 'At least one attendance record is required'),
 })
 
+export const attendanceConfigurationPayloadSchema = z.object({
+  minimumAttendancePercentage: z
+    .number()
+    .int('Minimum attendance percentage must be a whole number')
+    .min(1, 'Minimum attendance percentage must be at least 1')
+    .max(100, 'Minimum attendance percentage cannot exceed 100'),
+})
+
 export type AttendanceSessionParams = z.infer<typeof attendanceSessionParamsSchema>
 export type AttendanceSessionsQuery = z.infer<typeof attendanceSessionsQuerySchema>
 export type AttendanceSessionPayload = z.infer<typeof attendanceSessionPayloadSchema>
+export type AttendanceConfigurationPayload = z.infer<
+  typeof attendanceConfigurationPayloadSchema
+>

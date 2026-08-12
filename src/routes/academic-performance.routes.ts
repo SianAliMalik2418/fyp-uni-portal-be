@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   getAttendanceSessionController,
+  getAttendanceConfigurationController,
   getAcademicPerformanceContextController,
   getAssessmentsPlaceholder,
   getAttendancePlaceholder,
@@ -13,6 +14,7 @@ import {
   listLowAttendanceStudentsController,
   saveAttendanceSessionController,
   updateAttendanceSessionController,
+  updateAttendanceConfigurationController,
 } from '../controllers/academic-performance.controller.js'
 import { requireAuth, requireRoles } from '../middlewares/auth.middleware.js'
 import { getAcademicPerformanceAllowedRoles } from '../services/academic-performance.service.js'
@@ -33,6 +35,12 @@ academicPerformanceRoutes.get(
 
 attendanceRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('attendance')))
 attendanceRoutes.get('/', getAttendancePlaceholder)
+attendanceRoutes.get('/configuration', getAttendanceConfigurationController)
+attendanceRoutes.put(
+  '/configuration',
+  requireRoles('admin'),
+  updateAttendanceConfigurationController
+)
 attendanceRoutes.get(
   '/sessions',
   requireRoles('teacher', 'hod', 'admin'),

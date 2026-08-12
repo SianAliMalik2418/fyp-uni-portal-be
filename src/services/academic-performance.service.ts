@@ -5,6 +5,10 @@ import {
   type AttendanceStatus,
 } from '../models/attendance-session.model.js'
 import {
+  ATTENDANCE_CONFIGURATION_KEY,
+  AttendanceConfigurationModel,
+} from '../models/attendance-configuration.model.js'
+import {
   CourseOfferingModel,
   type CourseOfferingDocument,
 } from '../models/course-offering.model.js'
@@ -15,7 +19,10 @@ import { serializeCourseOffering, type SerializedCourseOffering } from './course
 import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 import { ApiError } from '../utils/api-error.js'
-import type { AttendanceSessionPayload } from '../validators/academic-performance.validator.js'
+import type {
+  AttendanceConfigurationPayload,
+  AttendanceSessionPayload,
+} from '../validators/academic-performance.validator.js'
 
 export type AcademicPerformanceModule = 'attendance' | 'assessments' | 'marks' | 'results'
 
@@ -70,6 +77,11 @@ export type AttendanceShortage = AttendanceCourseSummary & {
   student: AcademicPerformanceStudent
 }
 
+export type SerializedAttendanceConfiguration = {
+  minimumAttendancePercentage: number
+  updatedAt?: Date
+}
+
 export type AcademicPerformanceStudentRelation = {
   id: string
   name: string
@@ -121,6 +133,36 @@ const placeholders: Record<
 }
 
 const DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE = 75
+
+export async function getAttendanceConfiguration(): Promise<SerializedAttendanceConfiguration> {
+  const configuration = await AttendanceConfigurationModel.findOne({
+    key: ATTENDANCE_CONFIGURATION_KEY,
+  }).exec()
+
+  return {
+    minimumAttendancePercentage:
+      configuration?.minimumAttendancePercentage ?? DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE,
+    updatedAt: configuration?.updatedAt,
+  }
+}
+
+export async function updateAttendanceConfiguration(
+  payload: AttendanceConfigurationPayload
+): Promise<SerializedAttendanceConfiguration> {
+  const configuration = await AttendanceConfigurationModel.findOneAndUpdate(
+    { key: ATTENDANCE_CONFIGURATION_KEY },
+    {
+      $set: { minimumAttendancePercentage: payload.minimumAttendancePercentage },
+      $setOnInsert: { key: ATTENDANCE_CONFIGURATION_KEY },
+    },
+    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+  ).exec()
+
+  return {
+    minimumAttendancePercentage: configuration!.minimumAttendancePercentage,
+    updatedAt: configuration!.updatedAt,
+  }
+}
 
 export function getAcademicPerformancePlaceholder(
   module: AcademicPerformanceModule
@@ -707,7 +749,8 @@ function attendancePercentage(present: number, totalClasses: number) {
 function summarizeAttendanceRecords(
   offering: SerializedCourseOffering,
   student: AcademicPerformanceStudent,
-  sessions: AttendanceSessionDocument[]
+  sessions: AttendanceSessionDocument[],
+  requiredPercentage: number
 ): AttendanceCourseSummary {
   const totals = {
     present: 0,
@@ -733,8 +776,8 @@ function summarizeAttendanceRecords(
     absent: totals.absent,
     leave: totals.leave,
     attendancePercentage: percentage,
-    requiredPercentage: DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE,
-    isBelowThreshold: totalClasses > 0 && percentage < DEFAULT_REQUIRED_ATTENDANCE_PERCENTAGE,
+    requiredPercentage,
+    isBelowThreshold: totalClasses > 0 && percentage < requiredPercentage,
   }
 }
 
@@ -775,9 +818,12 @@ export async function getStudentAttendanceSummaries(
     enrollments.map((enrollment) => enrollment.courseOffering) as unknown[]
   ).filter(isPopulatedCourseOffering)
 
-  const sessions = await AttendanceSessionModel.find({
-    courseOffering: { $in: offerings.map((offering) => offering._id) },
-  }).exec()
+  const [sessions, configuration] = await Promise.all([
+    AttendanceSessionModel.find({
+      courseOffering: { $in: offerings.map((offering) => offering._id) },
+    }).exec(),
+    getAttendanceConfiguration(),
+  ])
   const serializedStudent = serializeAcademicStudent(studentRecord)
   const serializedOfferings = await Promise.all(
     offerings.map((offering) => serializeCourseOffering(offering))
@@ -787,7 +833,8 @@ export async function getStudentAttendanceSummaries(
     summarizeAttendanceRecords(
       offering,
       serializedStudent,
-      sessions.filter((session) => objectIdEquals(session.courseOffering, offering.id))
+      sessions.filter((session) => objectIdEquals(session.courseOffering, offering.id)),
+      configuration.minimumAttendancePercentage
     )
   )
 }
@@ -798,9 +845,12 @@ export async function listLowAttendanceStudents(user: UserDocument): Promise<Att
   }
 
   const offerings = await listAcademicPerformanceOfferings(user)
-  const sessions = await AttendanceSessionModel.find({
-    courseOffering: { $in: offerings.map((offering) => offering.id) },
-  }).exec()
+  const [sessions, configuration] = await Promise.all([
+    AttendanceSessionModel.find({
+      courseOffering: { $in: offerings.map((offering) => offering.id) },
+    }).exec(),
+    getAttendanceConfiguration(),
+  ])
 
   const shortageGroups = await Promise.all(
     offerings.map(async (offering) => {
@@ -811,7 +861,12 @@ export async function listLowAttendanceStudents(user: UserDocument): Promise<Att
 
       return students.map((student) => ({
         student,
-        ...summarizeAttendanceRecords(offering, student, offeringSessions),
+        ...summarizeAttendanceRecords(
+          offering,
+          student,
+          offeringSessions,
+          configuration.minimumAttendancePercentage
+        ),
       }))
     })
   )
