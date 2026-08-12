@@ -58,9 +58,14 @@ Before handing off backend work, verify:
 
 ## Backend Testing
 
+- Add or update backend tests with every new feature or meaningful API/business-rule change unless the user explicitly says not to. Do not rely only on manual verification for new routes, validators, authorization rules, persistence behavior, or service workflows.
 - Use Vitest for unit and integration tests.
 - Use Supertest for HTTP route tests that verify real request and response behavior.
 - Put backend tests next to the code they cover using `*.test.ts`.
+- Use unit tests for validators, pure helpers, authorization decisions, and business-rule branches that do not need HTTP.
+- Use service or integration tests for persistence behavior, relationship checks, duplicate handling, and transaction-like workflows.
+- Use Supertest route tests for every new or changed HTTP endpoint, including success, validation failure, unauthorized/forbidden access, and important edge cases.
+- When backend changes support a frontend final-state objective, coordinate with the frontend e2e coverage and update the full-stack seed/spec when needed.
 - Prefer behavior-focused tests based on validators, API contracts, authorization rules, persistence behavior, and edge cases.
 - Mock only slow, external, nondeterministic, paid, or network-only services such as Gemini calls.
 - Every test must have meaningful assertions.

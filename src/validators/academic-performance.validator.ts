@@ -107,6 +107,18 @@ export const markSheetPayloadSchema = z.object({
   records: z.array(markRecordSchema),
 })
 
+export const resultParamsSchema = z.object({
+  resultId: z.string().trim().min(1, 'Result ID is required'),
+})
+
+export const resultCommentPayloadSchema = z.object({
+  comment: z
+    .string()
+    .trim()
+    .min(3, 'A reason of at least 3 characters is required')
+    .max(1000, 'The reason cannot exceed 1000 characters'),
+})
+
 export type AttendanceSessionParams = z.infer<typeof attendanceSessionParamsSchema>
 export type AttendanceSessionsQuery = z.infer<typeof attendanceSessionsQuerySchema>
 export type AttendanceSessionPayload = z.infer<typeof attendanceSessionPayloadSchema>
@@ -114,3 +126,4 @@ export type AttendanceConfigurationPayload = z.infer<typeof attendanceConfigurat
 export type AssessmentPayload = z.infer<typeof assessmentPayloadSchema>
 export type AssessmentConfigurationPayload = z.infer<typeof assessmentConfigurationPayloadSchema>
 export type MarkSheetPayload = z.infer<typeof markSheetPayloadSchema>
+export type ResultCommentPayload = z.infer<typeof resultCommentPayloadSchema>

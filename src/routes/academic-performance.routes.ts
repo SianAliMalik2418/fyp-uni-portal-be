@@ -11,6 +11,12 @@ import {
   saveMarkSheetDraftController,
   getWeightedMarksSummaryController,
   getResultsPlaceholder,
+  getCourseResultController,
+  submitCourseResultController,
+  approveCourseResultController,
+  returnCourseResultController,
+  reopenCourseResultController,
+  getPublishedStudentResultsController,
   getStudentAttendanceSummariesController,
   listAttendanceHistoryController,
   listAcademicPerformanceOfferingStudentsController,
@@ -81,3 +87,17 @@ marksRoutes.put('/:assessmentId/draft', requireRoles('teacher'), saveMarkSheetDr
 
 resultsRoutes.use(requireAuth, requireRoles(...getAcademicPerformanceAllowedRoles('results')))
 resultsRoutes.get('/', getResultsPlaceholder)
+resultsRoutes.get('/student', requireRoles('student'), getPublishedStudentResultsController)
+resultsRoutes.get(
+  '/course/:offeringId',
+  requireRoles('teacher', 'hod', 'admin'),
+  getCourseResultController
+)
+resultsRoutes.post(
+  '/course/:offeringId/submit',
+  requireRoles('teacher'),
+  submitCourseResultController
+)
+resultsRoutes.post('/:resultId/approve', requireRoles('hod'), approveCourseResultController)
+resultsRoutes.post('/:resultId/return', requireRoles('hod'), returnCourseResultController)
+resultsRoutes.post('/:resultId/reopen', requireRoles('hod', 'admin'), reopenCourseResultController)

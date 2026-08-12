@@ -10,6 +10,7 @@ import {
   type AssessmentDocument,
 } from '../models/assessment.model.js'
 import { MarkSheetModel, type MarkStatus } from '../models/mark-sheet.model.js'
+import { ResultModel } from '../models/result.model.js'
 import type { UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
 import type {
@@ -226,6 +227,17 @@ export async function createAssessment(teacher: UserDocument, payload: Assessmen
     getAssessmentStructure(),
   ])
 
+  const lockedResult = await ResultModel.findOne({
+    courseOffering: offering._id,
+    status: { $in: ['pending', 'approved'] },
+  })
+    .select('_id')
+    .exec()
+
+  if (lockedResult) {
+    throw new ApiError(409, 'Assessments are locked while the result is pending or approved')
+  }
+
   if (!structure.categories.some((category) => category.id === payload.category)) {
     throw new ApiError(400, 'Assessment category is not active')
   }
@@ -332,7 +344,20 @@ export async function saveMarkSheetDraft(
 
   const assessment = await findAccessibleAssessment(teacher, assessmentId)
   const offeringId = assessment.courseOffering.toString()
-  const { students } = await listAcademicPerformanceOfferingStudents(teacher, offeringId)
+  const [{ students }, lockedResult] = await Promise.all([
+    listAcademicPerformanceOfferingStudents(teacher, offeringId),
+    ResultModel.findOne({
+      courseOffering: assessment.courseOffering,
+      status: { $in: ['pending', 'approved'] },
+    })
+      .select('_id')
+      .exec(),
+  ])
+
+  if (lockedResult) {
+    throw new ApiError(409, 'Marks are locked while the result is pending or approved')
+  }
+
   validateMarkRecords(students, assessment.maximumMarks, payload.records)
 
   await MarkSheetModel.findOneAndUpdate(

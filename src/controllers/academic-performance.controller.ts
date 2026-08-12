@@ -23,6 +23,14 @@ import {
   saveMarkSheetDraft,
   updateAssessmentStructure,
 } from '../services/assessment.service.js'
+import {
+  approveCourseResult,
+  getCourseResult,
+  getPublishedStudentResults,
+  reopenCourseResult,
+  returnCourseResult,
+  submitCourseResult,
+} from '../services/result.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   academicPerformanceOfferingParamsSchema,
@@ -35,6 +43,8 @@ import {
   assessmentPayloadSchema,
   assessmentsQuerySchema,
   markSheetPayloadSchema,
+  resultCommentPayloadSchema,
+  resultParamsSchema,
 } from '../validators/academic-performance.validator.js'
 
 function createAcademicPerformanceController(module: AcademicPerformanceModule): RequestHandler {
@@ -47,6 +57,43 @@ export const getAttendancePlaceholder = createAcademicPerformanceController('att
 export const getAssessmentsPlaceholder = createAcademicPerformanceController('assessments')
 export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
+
+export const getCourseResultController = asyncHandler(async (req, res) => {
+  const { offeringId } = academicPerformanceOfferingParamsSchema.parse(req.params)
+  const result = await getCourseResult(req.auth!.user, offeringId)
+  res.status(200).json({ result })
+})
+
+export const submitCourseResultController = asyncHandler(async (req, res) => {
+  const { offeringId } = academicPerformanceOfferingParamsSchema.parse(req.params)
+  const result = await submitCourseResult(req.auth!.user, offeringId)
+  res.status(200).json({ message: 'Result submitted for HOD approval.', result })
+})
+
+export const approveCourseResultController = asyncHandler(async (req, res) => {
+  const { resultId } = resultParamsSchema.parse(req.params)
+  const result = await approveCourseResult(req.auth!.user, resultId)
+  res.status(200).json({ message: 'Result approved and published.', result })
+})
+
+export const returnCourseResultController = asyncHandler(async (req, res) => {
+  const { resultId } = resultParamsSchema.parse(req.params)
+  const payload = resultCommentPayloadSchema.parse(req.body)
+  const result = await returnCourseResult(req.auth!.user, resultId, payload)
+  res.status(200).json({ message: 'Result returned to the teacher.', result })
+})
+
+export const reopenCourseResultController = asyncHandler(async (req, res) => {
+  const { resultId } = resultParamsSchema.parse(req.params)
+  const payload = resultCommentPayloadSchema.parse(req.body)
+  const result = await reopenCourseResult(req.auth!.user, resultId, payload)
+  res.status(200).json({ message: 'Result reopened for correction.', result })
+})
+
+export const getPublishedStudentResultsController = asyncHandler(async (req, res) => {
+  const results = await getPublishedStudentResults(req.auth!.user)
+  res.status(200).json(results)
+})
 
 export const getAssessmentStructureController = asyncHandler(async (_req, res) => {
   const structure = await getAssessmentStructure()
