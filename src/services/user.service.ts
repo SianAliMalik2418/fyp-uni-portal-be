@@ -11,6 +11,7 @@ import {
   type UserRole,
 } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { notifyAccountCreated } from './notification.service.js'
 import type { CreateUserPayload, UpdateUserPayload } from '../validators/user.validator.js'
 import { hashPassword } from './auth.service.js'
 import { syncStudentEnrollments } from './course.service.js'
@@ -373,6 +374,7 @@ export async function createUser(payload: CreateUserPayload): Promise<CreatedUse
   assignUserProfile(user, payload, references)
   await user.save()
   await syncStudentEnrollments(user.id)
+  await notifyAccountCreated(user)
 
   return {
     user: serializeUserAccount(await populateUserProfile(user)),

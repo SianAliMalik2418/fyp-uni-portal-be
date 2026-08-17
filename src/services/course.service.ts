@@ -11,6 +11,7 @@ import { SectionModel, type SectionDocument } from '../models/section.model.js'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { UserModel, type UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { notifyCourseAssigned } from './notification.service.js'
 import type {
   CreateCoursePayload,
   SectionCourseAssignmentPayload,
@@ -669,6 +670,7 @@ export async function assignTeacherToOffering(
 ) {
   const offering = await findOfferingById(offeringId)
   await assertCanManageOfferingTeacher(offering, user)
+  let assignedTeacher: UserDocument | null = null
 
   if (payload.teacherId === null) {
     offering.teacher = undefined
@@ -700,10 +702,19 @@ export async function assignTeacherToOffering(
     }
 
     offering.teacher = teacher._id
+    assignedTeacher = teacher
   }
 
   await offering.save()
-  return serializeCourseOffering(await populateOffering(offering))
+  const populatedOffering = await populateOffering(offering)
+  if (assignedTeacher && isPopulatedCourse(populatedOffering.course)) {
+    await notifyCourseAssigned(
+      assignedTeacher._id,
+      populatedOffering.id,
+      populatedOffering.course.title
+    )
+  }
+  return serializeCourseOffering(populatedOffering)
 }
 
 export async function listStudentCourses(student: UserDocument) {

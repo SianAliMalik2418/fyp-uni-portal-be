@@ -33,6 +33,15 @@ vi.mock('../models/user.model.js', () => ({
 vi.mock('../services/notification.service.js', () => ({
   listNotifications: vi.fn(),
   markNotificationRead: vi.fn(),
+  markAllNotificationsRead: vi.fn(),
+}))
+
+vi.mock('../services/announcement.service.js', () => ({
+  createAnnouncement: vi.fn(),
+  deleteAnnouncement: vi.fn(),
+  getAnnouncementAttachment: vi.fn(),
+  listAnnouncements: vi.fn(),
+  updateAnnouncement: vi.fn(),
 }))
 
 type MockUserDocument = {
@@ -51,6 +60,7 @@ const sectionService = await import('../services/section.service.js')
 const semesterService = await import('../services/semester.service.js')
 const userModel = await import('../models/user.model.js')
 const notificationService = await import('../services/notification.service.js')
+const announcementService = await import('../services/announcement.service.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -175,22 +185,91 @@ describe('student services routes', () => {
     vi.mocked(sectionService.listSections).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
     vi.mocked(userModel.UserModel.findById).mockReset()
+    vi.mocked(announcementService.createAnnouncement).mockReset()
+    vi.mocked(announcementService.deleteAnnouncement).mockReset()
+    vi.mocked(announcementService.listAnnouncements).mockReset()
+    vi.mocked(announcementService.updateAnnouncement).mockReset()
+    vi.mocked(notificationService.markAllNotificationsRead).mockReset()
   })
 
-  it('returns the announcements placeholder for all authenticated portal roles', async () => {
+  it('returns active announcements for every authenticated portal role', async () => {
     authenticateAs('hod')
+    vi.mocked(announcementService.listAnnouncements).mockResolvedValue({
+      announcements: [
+        {
+          id: '507f1f77bcf86cd799439040',
+          title: 'Campus closure',
+          description: 'Campus is closed on Friday.',
+          publishDate: new Date('2026-08-17T08:00:00.000Z'),
+          isPinned: true,
+          isActive: true,
+        },
+      ],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    } as never)
 
     const response = await request(app)
       .get('/api/announcements')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(200)
 
-    expect(response.body).toMatchObject({
-      module: 'announcements',
-      items: [],
-      empty: true,
-      allowedRoles: ['student', 'teacher', 'hod', 'admin'],
-    })
+    expect(response.body.announcements).toHaveLength(1)
+    expect(announcementService.listAnnouncements).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'hod' }),
+      expect.objectContaining({ status: 'active', page: 1, limit: 20 })
+    )
+  })
+
+  it('allows only admins to create, update, and delete announcements', async () => {
+    authenticateAs('admin')
+    const announcement = {
+      id: '507f1f77bcf86cd799439040',
+      title: 'Registration deadline',
+      description: 'Complete registration before the deadline.',
+      publishDate: new Date('2026-08-18T08:00:00.000Z'),
+      expiryDate: new Date('2026-08-25T08:00:00.000Z'),
+      isPinned: false,
+      isActive: true,
+    }
+    vi.mocked(announcementService.createAnnouncement).mockResolvedValue(announcement as never)
+    vi.mocked(announcementService.updateAnnouncement).mockResolvedValue({
+      ...announcement,
+      isPinned: true,
+    } as never)
+    vi.mocked(announcementService.deleteAnnouncement).mockResolvedValue(undefined)
+
+    const payload = {
+      title: announcement.title,
+      description: announcement.description,
+      publishDate: '2026-08-18T08:00:00.000Z',
+      expiryDate: '2026-08-25T08:00:00.000Z',
+      isPinned: false,
+      isActive: true,
+    }
+    await request(app)
+      .post('/api/announcements')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send(payload)
+      .expect(201)
+    await request(app)
+      .patch(`/api/announcements/${announcement.id}`)
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({ ...payload, isPinned: true })
+      .expect(200)
+    await request(app)
+      .delete(`/api/announcements/${announcement.id}`)
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(204)
+
+    authenticateAs('teacher')
+    await request(app)
+      .post('/api/announcements')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send(payload)
+      .expect(403)
   })
 
   it('blocks teachers from student-only AI assistant placeholder', async () => {
@@ -252,6 +331,21 @@ describe('student services routes', () => {
     expect(notificationService.markNotificationRead).toHaveBeenCalledWith(
       expect.objectContaining({ id: baseUser.id }),
       notification.id
+    )
+  })
+
+  it('marks all current user notifications as read', async () => {
+    authenticateAs('teacher')
+    vi.mocked(notificationService.markAllNotificationsRead).mockResolvedValue(3)
+
+    const response = await request(app)
+      .patch('/api/notifications/read-all')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(response.body).toEqual({ message: 'All notifications marked as read.', updatedCount: 3 })
+    expect(notificationService.markAllNotificationsRead).toHaveBeenCalledWith(
+      expect.objectContaining({ id: baseUser.id })
     )
   })
 

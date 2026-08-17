@@ -665,55 +665,6 @@ Support:
 * Registration-number uniqueness
 * Email uniqueness
 
----
-
-## 2. Bulk Student Import
-
-### Sian — FE
-
-Build:
-
-* Upload file interface
-* Import button
-* Processing state
-* Import result summary
-
-Show:
-
-* Total rows
-* Successful rows
-* Failed rows
-
-Failed row list should show:
-
-* Row number
-* Student information where available
-* Failure reason
-
----
-
-### Sian — BE
-
-Bulk import must:
-
-* Accept CSV/Excel student data.
-* Validate every row.
-* Import valid rows.
-* Skip invalid rows.
-* Prevent duplicates.
-* Return detailed result summary.
-
-Possible failures:
-
-* Duplicate registration
-* Duplicate email
-* Missing name
-* Invalid program
-* Invalid semester
-* Invalid section
-* Missing required fields
-
----
 
 ## 3. Teacher Management
 
@@ -890,8 +841,6 @@ Admin should:
 * Choose section
 * Select courses
 * Save assignment
-
-Display currently assigned courses.
 
 ### Sian — BE
 
@@ -1215,7 +1164,6 @@ Supported status values:
 
 * Absent
 * Exempted
-* Result Withheld
 
 Provide:
 
@@ -1712,89 +1660,6 @@ Ensure exam-course relationships remain compatible with academic modules.
 
 Correct student sees correct timetable and exams.
 
----
-
-# PHASE 11 — Course Materials
-
-## Objective
-
-Allow teachers to share academic resources.
-
----
-
-# Hammad — Phase 11 Owner
-
-## Hammad — FE
-
-Teacher materials page:
-
-* Select assigned course
-* Add material
-* Add title
-* Add description
-* Upload file
-* Add external link
-* View current materials
-* Remove material
-
-Student page:
-
-* Select/view course materials
-* Display simple list
-* Download/view file
-* Open external link
-
-Supported:
-
-* PDF
-* DOCX
-* PPTX
-* XLSX
-* JPG
-* JPEG
-* PNG
-
----
-
-## Hammad — BE
-
-Support:
-
-* Material file upload
-* File metadata storage
-* External links
-* Course association
-* Teacher ownership verification
-* Student enrollment verification
-* File retrieval/download access
-* Material deletion
-
-Teacher must only upload for assigned courses.
-
-Student must only access enrolled-course material.
-
----
-
-# Sian — Phase 11 Responsibilities
-
-Provide:
-
-* Enrollment checks
-* Teacher course assignments
-
----
-
-# Tayabba — Phase 11 Responsibilities
-
-Permission and integration testing.
-
----
-
-## Phase 11 Completion Criteria
-
-Teacher uploads material → enrolled student accesses it.
-
----
 
 # PHASE 12 — Announcements and Notifications
 

@@ -19,6 +19,7 @@ import { serializeCourseOffering, type SerializedCourseOffering } from './course
 import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 import { ApiError } from '../utils/api-error.js'
+import { notifyAttendanceUpdated } from './notification.service.js'
 import type {
   AttendanceConfigurationPayload,
   AttendanceSessionPayload,
@@ -642,6 +643,7 @@ export async function saveAttendanceSession(
     { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
+  await notifyAttendanceUpdated(session!)
   return serializeAttendanceSession(await populateAttendanceSession(session!))
 }
 
@@ -680,6 +682,7 @@ export async function updateAttendanceSession(
   }))
 
   await existingSession.save()
+  await notifyAttendanceUpdated(existingSession)
 
   return serializeAttendanceSession(await populateAttendanceSession(existingSession))
 }

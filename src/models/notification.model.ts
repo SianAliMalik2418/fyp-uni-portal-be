@@ -1,6 +1,13 @@
 import { Schema, model, type HydratedDocument, type Types } from 'mongoose'
 
-export const notificationTypes = ['result_published'] as const
+export const notificationTypes = [
+  'account_created',
+  'course_assigned',
+  'attendance_updated',
+  'result_returned',
+  'result_approved',
+  'result_published',
+] as const
 export type NotificationType = (typeof notificationTypes)[number]
 
 export interface Notification {
@@ -8,6 +15,8 @@ export interface Notification {
   type: NotificationType
   title: string
   message: string
+  notificationKey: string
+  resourcePath?: string
   result?: Types.ObjectId
   readAt?: Date
   createdAt?: Date
@@ -22,6 +31,8 @@ const notificationSchema = new Schema<Notification>(
     type: { type: String, enum: notificationTypes, required: true, index: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
     message: { type: String, required: true, trim: true, maxlength: 500 },
+    notificationKey: { type: String, required: true },
+    resourcePath: { type: String, trim: true, maxlength: 300 },
     result: { type: Schema.Types.ObjectId, ref: 'Result', index: true },
     readAt: { type: Date },
   },
@@ -29,9 +40,6 @@ const notificationSchema = new Schema<Notification>(
 )
 
 notificationSchema.index({ recipient: 1, createdAt: -1 })
-notificationSchema.index(
-  { recipient: 1, type: 1, result: 1 },
-  { unique: true, partialFilterExpression: { result: { $exists: true } } }
-)
+notificationSchema.index({ recipient: 1, notificationKey: 1 }, { unique: true })
 
 export const NotificationModel = model('Notification', notificationSchema)

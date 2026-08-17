@@ -13,7 +13,11 @@ import {
 import { getWeightedMarksSummary, type StudentWeightedSummary } from './assessment.service.js'
 import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
 import { getGradingScale, mapPercentageToGrade } from './grading-scale.service.js'
-import { publishResultNotifications } from './notification.service.js'
+import {
+  notifyResultApproved,
+  notifyResultReturned,
+  publishResultNotifications,
+} from './notification.service.js'
 import type { GradeRange } from '../models/grading-configuration.model.js'
 
 export type SerializedResultRecord = {
@@ -281,6 +285,7 @@ export async function approveCourseResult(hod: UserDocument, resultId: string) {
   if (hod.role !== 'hod') throw new ApiError(403, 'HOD result approval required')
   const result = await findResultForAction(hod, resultId)
   if (result.status === 'approved') {
+    await notifyResultApproved(result)
     await publishResultNotifications(result)
     return getCourseResult(hod, result.courseOffering.toString())
   }
@@ -295,6 +300,7 @@ export async function approveCourseResult(hod: UserDocument, resultId: string) {
   result.hodComment = undefined
   result.history.push({ action: 'approved', actor: hod._id, occurredAt: now })
   await result.save()
+  await notifyResultApproved(result)
   await publishResultNotifications(result)
 
   return getCourseResult(hod, result.courseOffering.toString())
@@ -322,6 +328,7 @@ export async function returnCourseResult(
     occurredAt: now,
   })
   await result.save()
+  await notifyResultReturned(result, payload.comment)
 
   return getCourseResult(hod, result.courseOffering.toString())
 }
@@ -351,6 +358,7 @@ export async function reopenCourseResult(
     occurredAt: now,
   })
   await result.save()
+  await notifyResultReturned(result, payload.comment)
 
   return getCourseResult(user, result.courseOffering.toString())
 }
