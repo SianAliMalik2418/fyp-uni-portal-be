@@ -11,6 +11,7 @@ import { batchesRoutes } from './batches.routes.js'
 import { coursesRoutes } from './courses.routes.js'
 import { departmentsRoutes } from './departments.routes.js'
 import { healthRoutes } from './health.routes.js'
+import { feesRoutes } from './fees.routes.js'
 import { programsRoutes } from './programs.routes.js'
 import { sectionsRoutes } from './sections.routes.js'
 import { semestersRoutes } from './semesters.routes.js'
@@ -18,7 +19,6 @@ import {
   aiAssistantRoutes,
   announcementsRoutes,
   examsRoutes,
-  feesRoutes,
   materialsRoutes,
   notificationsRoutes,
   studentServicesRoutes,

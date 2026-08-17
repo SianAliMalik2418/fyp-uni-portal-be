@@ -15,6 +15,7 @@ import { CourseOfferingModel } from '../models/course-offering.model.js'
 import { CourseModel } from '../models/course.model.js'
 import { DepartmentModel } from '../models/department.model.js'
 import { EnrollmentModel } from '../models/enrollment.model.js'
+import { FeeModel } from '../models/fee.model.js'
 import { MarkSheetModel } from '../models/mark-sheet.model.js'
 import { ProgramModel } from '../models/program.model.js'
 import { SectionModel } from '../models/section.model.js'
@@ -55,6 +56,7 @@ async function seed() {
     CourseModel.deleteMany({}),
     CourseOfferingModel.deleteMany({}),
     EnrollmentModel.deleteMany({}),
+    FeeModel.deleteMany({}),
     AttendanceSessionModel.deleteMany({}),
     AssessmentModel.deleteMany({}),
     MarkSheetModel.deleteMany({}),

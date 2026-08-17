@@ -4,7 +4,6 @@ import {
   getAiAssistantPlaceholder,
   getAnnouncementsPlaceholder,
   getExamsPlaceholder,
-  getFeesPlaceholder,
   getMaterialsPlaceholder,
   listNotificationsController,
   markNotificationReadController,
@@ -26,7 +25,6 @@ function createStudentServiceRoutes(module: StudentServiceModule, handler: Reque
   return routes
 }
 
-export const feesRoutes = createStudentServiceRoutes('fees', getFeesPlaceholder)
 export const timetableRoutes = createStudentServiceRoutes('timetable', getTimetablePlaceholder)
 export const examsRoutes = createStudentServiceRoutes('exams', getExamsPlaceholder)
 export const materialsRoutes = createStudentServiceRoutes('materials', getMaterialsPlaceholder)

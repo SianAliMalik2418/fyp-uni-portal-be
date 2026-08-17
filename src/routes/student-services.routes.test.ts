@@ -168,30 +168,13 @@ function mockStudentLookup(student: unknown = studentDocument) {
   vi.mocked(userModel.UserModel.findById).mockReturnValue(query as never)
 }
 
-describe('student services placeholder routes', () => {
+describe('student services routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
     vi.mocked(courseService.listStudentCourses).mockReset()
     vi.mocked(sectionService.listSections).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
     vi.mocked(userModel.UserModel.findById).mockReset()
-  })
-
-  it('returns the fees placeholder for authenticated students', async () => {
-    authenticateAs('student')
-
-    const response = await request(app)
-      .get('/api/fees')
-      .set('Cookie', ['portal_session=raw-session-token'])
-      .expect(200)
-
-    expect(response.body).toEqual({
-      module: 'fees',
-      items: [],
-      empty: true,
-      message: 'No fee records available yet.',
-      allowedRoles: ['student', 'admin'],
-    })
   })
 
   it('returns the announcements placeholder for all authenticated portal roles', async () => {
