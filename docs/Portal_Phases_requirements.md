@@ -1623,9 +1623,10 @@ Admin page should allow:
 * Select program
 * Select semester
 * Select section
-* Upload timetable image
-* Replace timetable image
-* View existing timetable
+* Configure recurring weekly course slots
+* Save timetable changes as a draft
+* Publish or replace the current timetable
+* View the current published timetable
 
 Student page:
 
@@ -1641,13 +1642,15 @@ Teacher page:
 
 Support:
 
-* Timetable image upload
+* Configurable timetable entries with course, teacher, day, time, room, and slot type
 * Program association
 * Semester association
 * Section association
-* Timetable replacement
+* Draft and published timetable versions
+* Timetable replacement through explicit publication
 * Student-specific retrieval
 * Teacher-relevant retrieval
+* Section, teacher, and room collision validation
 
 ---
 
@@ -2715,7 +2718,7 @@ Prepare:
 Prepare:
 
 * Fees
-* Timetable images
+* Configurable timetables
 * Exams
 * Materials
 * Announcements
@@ -3057,7 +3060,7 @@ Owns:
 
 Owns:
 
-> Timetable Upload Screen → Timetable Storage → Student Timetable Retrieval → Student Timetable Screen
+> Timetable Editor → Draft and Published Storage → Student Timetable Retrieval → Student Timetable Screen
 
 This means each member can explain their feature completely during the FYP defense:
 

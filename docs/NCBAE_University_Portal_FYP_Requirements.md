@@ -20,7 +20,7 @@
 
 The proposed project is a centralized university portal designed to digitize and simplify common academic operations for students, teachers, Heads of Department (HODs), and university administrators.
 
-The portal will provide a single web-based platform through which academic information can be managed and accessed. Instead of relying on separate manual processes, spreadsheets, notices, and disconnected systems, the university portal will organize student records, course assignments, attendance, assessments, results, fee information, timetable images, course materials, announcements, and academic dashboards in one place.
+The portal will provide a single web-based platform through which academic information can be managed and accessed. Instead of relying on separate manual processes, spreadsheets, notices, and disconnected systems, the university portal will organize student records, course assignments, attendance, assessments, results, fee information, configurable timetables, course materials, announcements, and academic dashboards in one place.
 
 The system will be developed using the **MERN stack**, consisting of MongoDB, Express.js, React.js, and Node.js.
 
@@ -77,7 +77,7 @@ The portal will include:
 - GPA and grade calculation
 - Result cards
 - Fee information
-- Timetable image management
+- Configurable timetable management
 - Examination date sheets
 - Course materials
 - Global announcements
@@ -163,7 +163,7 @@ A student will be able to:
 - View grades, GPA, and CGPA.
 - View semester result card.
 - View fee status.
-- View timetable image.
+- View the published timetable.
 - View exam date sheet.
 - View course materials.
 - View global announcements.
@@ -190,7 +190,7 @@ A teacher will be able to:
 - Submit complete course results to the HOD.
 - View returned result submissions and HOD comments.
 - Upload course materials.
-- View relevant timetable images.
+- View relevant published timetable slots.
 - View relevant examination date sheets.
 - Receive in-app notifications.
 
@@ -242,7 +242,7 @@ The administrator will be able to:
 - Configure assessment weightages.
 - Configure attendance threshold.
 - Manage student fee records.
-- Upload timetable images.
+- Configure and publish timetables.
 - Create exam date sheets.
 - Publish global announcements.
 - View system-wide dashboards.
@@ -261,7 +261,7 @@ Example:
 
 **Computer Science → BSCS → Fall 2023 Batch → Semester 8 → Section A → Web Engineering**
 
-This academic structure will be used throughout the portal to organize students, teachers, courses, attendance, marks, timetable images, and results.
+This academic structure will be used throughout the portal to organize students, teachers, courses, attendance, marks, timetables, and results.
 
 ---
 
@@ -821,21 +821,21 @@ The timetable system will remain intentionally simple.
 
 There will be no timetable scheduling engine.
 
-The administrator will upload timetable images.
+The administrator will manually configure recurring weekly timetable slots and publish them for the relevant section.
 
 ---
 
 # 49. Timetable Assignment
 
-Each timetable image will be assigned to:
+Each timetable will be assigned to:
 
 - Program
 - Semester
 - Section
 
-Students will automatically see the timetable image assigned to their class.
+Students will automatically see the published timetable assigned to their class.
 
-Teachers may view timetable images of relevant sections.
+Teachers may view published timetable slots for their current course assignments.
 
 ---
 
@@ -843,15 +843,15 @@ Teachers may view timetable images of relevant sections.
 
 A timetable record may include:
 
-- Title
 - Program
 - Semester
 - Section
-- Image file
-- Upload date
+- Draft or published status
+- Version and publication date
 - Optional description
+- Recurring weekly entries with course offering, teacher, day, start time, end time, room, and slot type
 
-The administrator can replace the timetable image when the schedule changes.
+The administrator can save changes as a draft and replace the published timetable when the schedule changes.
 
 ---
 
@@ -1182,7 +1182,7 @@ Examples include:
 - Bulk import
 - Semester promotion
 - Fee updates
-- Timetable uploads
+- Timetable changes
 - Grading scale changes
 
 ---
@@ -1737,7 +1737,7 @@ These include:
 2. One active semester at a time.
 3. No student course selection.
 4. No automatic timetable generation.
-5. Timetable uploaded as an image only.
+5. Timetable configured manually without automatic schedule generation.
 6. No timetable conflict detection.
 7. No online fee payment.
 8. Fee information entered manually.
@@ -2016,7 +2016,7 @@ A typical academic workflow will be:
 17. GPA is calculated.
 18. Students download result cards.
 19. Admin updates fee information.
-20. Admin uploads timetable images and exam date sheets.
+20. Admin configures timetables and creates exam date sheets.
 21. Teachers upload course materials.
 22. Admin publishes announcements.
 23. Students use the AI assistant to retrieve academic information.
@@ -2098,7 +2098,7 @@ The final FYP should include:
 12. Results module
 13. GPA calculation
 14. Fee information module
-15. Timetable image module
+15. Configurable timetable module
 16. Exam date sheet module
 17. Course materials module
 18. Announcement module
@@ -2127,7 +2127,7 @@ The project will be considered successful if:
 - GPA calculations are correct.
 - Students can access published results.
 - Fee information can be viewed.
-- Timetable images work according to section.
+- Published timetables work according to section.
 - Course materials can be uploaded and accessed.
 - Global announcements are displayed.
 - Notifications work correctly.

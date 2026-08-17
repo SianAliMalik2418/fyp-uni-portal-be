@@ -62,6 +62,16 @@ Passwords are hashed with Node `crypto.scryptSync`. Session tokens are random, s
 
 Better Auth docs and local Better Auth skills are available for a future migration, but Better Auth is not the current runtime auth provider.
 
+## Scheduling
+
+- `src/models/timetable.model.ts` and `src/services/timetable.service.ts`: Admin-configured draft and published weekly timetables with section, teacher, and room conflict validation.
+- `src/models/exam.model.ts` and `src/services/exam.service.ts`: Manually configured exam entries linked to an active course offering. Program, semester, section, and course references are derived from that offering so academic relationships remain consistent.
+- `/api/exams/admin`: Bounded admin exam listing for one section.
+- `/api/exams/me/student`: Exam entries limited to the authenticated student's active enrollments.
+- `/api/exams/me/teacher`: Exam entries limited to the authenticated teacher's active course assignments.
+
+Exam scheduling intentionally has no automatic generation or clash-detection engine.
+
 ## AI Integration
 
 - `@google/generative-ai`: Gemini SDK used by `src/services/ai.service.ts`.

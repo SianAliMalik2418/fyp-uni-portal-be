@@ -16,8 +16,6 @@ function createStudentServiceController(module: StudentServiceModule): RequestHa
 }
 
 export const getFeesPlaceholder = createStudentServiceController('fees')
-export const getTimetablePlaceholder = createStudentServiceController('timetable')
-export const getExamsPlaceholder = createStudentServiceController('exams')
 export const getMaterialsPlaceholder = createStudentServiceController('materials')
 export const getAnnouncementsPlaceholder = createStudentServiceController('announcements')
 export const getNotificationsPlaceholder = createStudentServiceController('notifications')

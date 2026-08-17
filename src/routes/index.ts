@@ -10,19 +10,19 @@ import { authRoutes } from './auth.routes.js'
 import { batchesRoutes } from './batches.routes.js'
 import { coursesRoutes } from './courses.routes.js'
 import { departmentsRoutes } from './departments.routes.js'
+import { examRoutes } from './exam.routes.js'
 import { healthRoutes } from './health.routes.js'
 import { feesRoutes } from './fees.routes.js'
 import { programsRoutes } from './programs.routes.js'
 import { sectionsRoutes } from './sections.routes.js'
 import { semestersRoutes } from './semesters.routes.js'
+import { timetableRoutes } from './timetable.routes.js'
 import {
   aiAssistantRoutes,
   announcementsRoutes,
-  examsRoutes,
   materialsRoutes,
   notificationsRoutes,
   studentServicesRoutes,
-  timetableRoutes,
 } from './student-services.routes.js'
 import { usersRoutes } from './users.routes.js'
 import { studentDashboardRoutes } from './student-dashboard.routes.js'
@@ -45,7 +45,7 @@ apiRoutes.use('/marks', marksRoutes)
 apiRoutes.use('/results', resultsRoutes)
 apiRoutes.use('/fees', feesRoutes)
 apiRoutes.use('/timetable', timetableRoutes)
-apiRoutes.use('/exams', examsRoutes)
+apiRoutes.use('/exams', examRoutes)
 apiRoutes.use('/materials', materialsRoutes)
 apiRoutes.use('/student-services', studentServicesRoutes)
 apiRoutes.use('/student-dashboard', studentDashboardRoutes)

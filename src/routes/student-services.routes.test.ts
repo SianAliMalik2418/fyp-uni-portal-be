@@ -202,6 +202,16 @@ describe('student services routes', () => {
       .expect(403)
   })
 
+  it('validates admin exam creation payloads instead of serving the placeholder', async () => {
+    authenticateAs('admin')
+
+    await request(app)
+      .post('/api/exams')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({})
+      .expect(400)
+  })
+
   it('blocks temporary-password users from student service placeholders', async () => {
     vi.mocked(authService.resolveSession).mockResolvedValue({
       session: { id: 'session-id' },

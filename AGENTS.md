@@ -88,6 +88,7 @@ bun run test
 - Never skip or weaken a test to get green. If a test expectation is wrong, explain the contract change before updating it.
 - Do not use `bun run dev` or watch mode as final verification.
 - Always use the `simplify` skill after the implementation and automated checks are green, before handoff.
+- Check from skills installed globally in system and see what could be used in your speciifc scenario and use it
 
 ## Backend Failure Log
 
