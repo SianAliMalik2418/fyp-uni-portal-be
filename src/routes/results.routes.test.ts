@@ -38,6 +38,7 @@ vi.mock('../services/result.service.js', () => ({
   approveCourseResult: vi.fn(),
   getCourseResult: vi.fn(),
   getPublishedStudentResults: vi.fn(),
+  getStudentResultCard: vi.fn(),
   reopenCourseResult: vi.fn(),
   returnCourseResult: vi.fn(),
   submitCourseResult: vi.fn(),
@@ -220,6 +221,36 @@ describe('result routes', () => {
     expect(response.body).toEqual({ semesters: [], cgpa: 0 })
     await request(app)
       .get(`/api/results/course/${offeringId}`)
+      .set('Cookie', ['portal_session=token'])
+      .expect(403)
+  })
+
+  it('returns an approved semester result card only to the signed-in student', async () => {
+    authenticateAs('student')
+    const resultCard = {
+      student: { name: 'Portal User', registrationNumber: 'NCBAE-2026-CS-001' },
+      program: { id: 'program-1', name: 'BS Computer Science', code: 'BSCS' },
+      semester: { id: offeringId, name: 'Semester 1', academicYear: '2026-2027' },
+      courses: [],
+      totalCreditHours: 0,
+      gpa: 0,
+    }
+    vi.mocked(resultService.getStudentResultCard).mockResolvedValue(resultCard as never)
+
+    const response = await request(app)
+      .get(`/api/results/student/result-card/${offeringId}`)
+      .set('Cookie', ['portal_session=token'])
+      .expect(200)
+
+    expect(resultService.getStudentResultCard).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'student' }),
+      offeringId
+    )
+    expect(response.body).toEqual({ resultCard })
+
+    authenticateAs('teacher')
+    await request(app)
+      .get(`/api/results/student/result-card/${offeringId}`)
       .set('Cookie', ['portal_session=token'])
       .expect(403)
   })

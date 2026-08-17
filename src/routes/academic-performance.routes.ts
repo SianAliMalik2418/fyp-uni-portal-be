@@ -17,6 +17,7 @@ import {
   returnCourseResultController,
   reopenCourseResultController,
   getPublishedStudentResultsController,
+  getStudentResultCardController,
   getGradingScaleController,
   updateGradingScaleController,
   getStudentAttendanceSummariesController,
@@ -92,6 +93,11 @@ resultsRoutes.get('/', getResultsPlaceholder)
 resultsRoutes.get('/grading-scale', requireRoles('admin'), getGradingScaleController)
 resultsRoutes.put('/grading-scale', requireRoles('admin'), updateGradingScaleController)
 resultsRoutes.get('/student', requireRoles('student'), getPublishedStudentResultsController)
+resultsRoutes.get(
+  '/student/result-card/:semesterId',
+  requireRoles('student'),
+  getStudentResultCardController
+)
 resultsRoutes.get(
   '/course/:offeringId',
   requireRoles('teacher', 'hod', 'admin'),

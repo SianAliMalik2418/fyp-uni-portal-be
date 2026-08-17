@@ -27,6 +27,7 @@ import {
   approveCourseResult,
   getCourseResult,
   getPublishedStudentResults,
+  getStudentResultCard,
   reopenCourseResult,
   returnCourseResult,
   submitCourseResult,
@@ -46,6 +47,7 @@ import {
   markSheetPayloadSchema,
   resultCommentPayloadSchema,
   resultParamsSchema,
+  semesterResultParamsSchema,
   gradingScalePayloadSchema,
 } from '../validators/academic-performance.validator.js'
 
@@ -95,6 +97,12 @@ export const reopenCourseResultController = asyncHandler(async (req, res) => {
 export const getPublishedStudentResultsController = asyncHandler(async (req, res) => {
   const results = await getPublishedStudentResults(req.auth!.user)
   res.status(200).json(results)
+})
+
+export const getStudentResultCardController = asyncHandler(async (req, res) => {
+  const { semesterId } = semesterResultParamsSchema.parse(req.params)
+  const resultCard = await getStudentResultCard(req.auth!.user, semesterId)
+  res.status(200).json({ resultCard })
 })
 
 export const getGradingScaleController = asyncHandler(async (_req, res) => {

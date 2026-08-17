@@ -57,6 +57,30 @@ export type StudentCourseResult = {
   approvedAt?: Date
 }
 
+export type StudentResultCard = {
+  student: {
+    name: string
+    registrationNumber: string
+  }
+  program: {
+    id: string
+    name: string
+    code: string
+  }
+  semester: SerializedCourseOffering['course']['semester']
+  courses: Array<{
+    resultId: string
+    code: string
+    title: string
+    creditHours: number
+    marks: number
+    grade: string
+    gradePoint: number
+  }>
+  totalCreditHours: number
+  gpa: number
+}
+
 function rounded(value: number) {
   return Math.round(value * 100) / 100
 }
@@ -392,4 +416,41 @@ export async function getPublishedStudentResults(student: UserDocument) {
   )
 
   return { semesters, cgpa }
+}
+
+export async function getStudentResultCard(student: UserDocument, semesterId: string) {
+  if (student.role !== 'student') {
+    throw new ApiError(403, 'Student result-card access required')
+  }
+  ensureValidObjectId(semesterId, 'semester')
+
+  const publishedResults = await getPublishedStudentResults(student)
+  const semesterResult = publishedResults.semesters.find(
+    (candidate) => candidate.semester.id === semesterId
+  )
+  if (!semesterResult?.courses.length) {
+    throw new ApiError(404, 'Approved semester result not found')
+  }
+
+  const firstCourse = semesterResult.courses[0]!
+  const courses = semesterResult.courses.map((courseResult) => ({
+    resultId: courseResult.id,
+    code: courseResult.offering.course.code,
+    title: courseResult.offering.course.title,
+    creditHours: courseResult.offering.course.creditHours,
+    marks: courseResult.finalPercentage,
+    grade: courseResult.letterGrade,
+    gradePoint: courseResult.gradePoint,
+  }))
+  return {
+    student: {
+      name: student.fullName,
+      registrationNumber: student.registrationNumber ?? 'Not assigned',
+    },
+    program: firstCourse.offering.course.program,
+    semester: semesterResult.semester,
+    courses,
+    totalCreditHours: courses.reduce((total, course) => total + course.creditHours, 0),
+    gpa: semesterResult.gpa,
+  } satisfies StudentResultCard
 }

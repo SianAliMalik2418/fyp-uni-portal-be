@@ -111,6 +111,10 @@ export const resultParamsSchema = z.object({
   resultId: z.string().trim().min(1, 'Result ID is required'),
 })
 
+export const semesterResultParamsSchema = z.object({
+  semesterId: z.string().trim().min(1, 'Semester ID is required'),
+})
+
 export const resultCommentPayloadSchema = z.object({
   comment: z
     .string()
