@@ -36,6 +36,10 @@ vi.mock('../services/section.service.js', () => ({
   updateSection: vi.fn(),
 }))
 
+vi.mock('../services/audit-log.service.js', () => ({
+  recordAuditLog: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -47,6 +51,7 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const batchService = await import('../services/batch.service.js')
 const semesterService = await import('../services/semester.service.js')
 const sectionService = await import('../services/section.service.js')
@@ -117,6 +122,7 @@ function authenticateAs(user: MockUserDocument) {
 describe('academic structure routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
     vi.mocked(batchService.createBatch).mockReset()
     vi.mocked(batchService.listBatches).mockReset()
     vi.mocked(semesterService.activateSemester).mockReset()
@@ -157,6 +163,12 @@ describe('academic structure routes', () => {
       isActive: true,
     })
     expect(response.body).toEqual({ batches: [batch] })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'batches',
+      affectedRecord: { id: batch.id, label: batch.name },
+    })
   })
 
   it('supports semester activation and close actions', async () => {
@@ -180,6 +192,18 @@ describe('academic structure routes', () => {
 
     expect(semesterService.activateSemester).toHaveBeenCalledWith(semester.id)
     expect(semesterService.closeSemester).toHaveBeenCalledWith(semester.id)
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(1, {
+      actor: adminDocument,
+      action: 'activated',
+      module: 'semesters',
+      affectedRecord: { id: semester.id, label: semester.name },
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(2, {
+      actor: adminDocument,
+      action: 'closed',
+      module: 'semesters',
+      affectedRecord: { id: semester.id, label: semester.name },
+    })
   })
 
   it('validates section relationships before calling the service', async () => {
@@ -224,6 +248,12 @@ describe('academic structure routes', () => {
       isActive: true,
     })
     expect(response.body).toEqual({ sections: [section] })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'sections',
+      affectedRecord: { id: section.id, label: section.name },
+    })
   })
 
   it('blocks non-admin users from managing academic structure', async () => {

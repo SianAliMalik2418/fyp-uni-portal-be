@@ -11,6 +11,7 @@ import {
   listTeacherCourseOfferings,
   updateCourse,
 } from '../services/course.service.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   courseOfferingParamsSchema,
@@ -43,6 +44,12 @@ export const listCourseOfferingsController = asyncHandler(async (req, res) => {
 export const createCourseController = asyncHandler(async (req, res) => {
   const payload = createCourseSchema.parse(req.body)
   const course = await createCourse(payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'created',
+    module: 'courses',
+    affectedRecord: { id: course.id, label: `${course.code} - ${course.title}` },
+  })
 
   res.status(201).json({
     message: 'Course created',
@@ -54,6 +61,12 @@ export const updateCourseController = asyncHandler(async (req, res) => {
   const { courseId } = courseParamsSchema.parse(req.params)
   const payload = updateCourseSchema.parse(req.body)
   const course = await updateCourse(courseId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'courses',
+    affectedRecord: { id: course.id, label: `${course.code} - ${course.title}` },
+  })
 
   res.status(200).json({
     message: 'Course updated',
@@ -64,6 +77,12 @@ export const updateCourseController = asyncHandler(async (req, res) => {
 export const deleteCourseController = asyncHandler(async (req, res) => {
   const { courseId } = courseParamsSchema.parse(req.params)
   await deleteCourse(courseId)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'deleted',
+    module: 'courses',
+    affectedRecord: { id: courseId },
+  })
 
   res.status(200).json({ message: 'Course deleted' })
 })
@@ -72,6 +91,12 @@ export const assignCoursesToSectionController = asyncHandler(async (req, res) =>
   const { sectionId } = sectionCourseParamsSchema.parse(req.params)
   const payload = sectionCourseAssignmentSchema.parse(req.body)
   const offerings = await assignCoursesToSection(sectionId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'assigned',
+    module: 'courses',
+    affectedRecord: { id: sectionId, label: 'Section course set' },
+  })
 
   res.status(200).json({
     message: 'Section courses saved',
@@ -90,6 +115,15 @@ export const assignTeacherToOfferingController = asyncHandler(async (req, res) =
   const { offeringId } = courseOfferingParamsSchema.parse(req.params)
   const payload = teacherAssignmentSchema.parse(req.body)
   const offering = await assignTeacherToOffering(offeringId, payload, req.auth!.user)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'assigned',
+    module: 'courses',
+    affectedRecord: {
+      id: offering.id,
+      label: `${offering.course.code} - ${offering.section.name}`,
+    },
+  })
 
   res.status(200).json({
     message: 'Course teacher saved',

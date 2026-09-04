@@ -77,7 +77,6 @@ Hammad mainly owns:
 * Fee information
 * Timetable
 * Examination date sheet
-* Course materials
 * Announcements
 * Notifications
 * Student dashboard
@@ -164,7 +163,6 @@ Create protected role layouts.
 * Fees
 * Timetable
 * Exams
-* Materials
 * Announcements
 
 ### Teacher Navigation
@@ -174,7 +172,6 @@ Create protected role layouts.
 * Attendance
 * Assessments
 * Results
-* Materials
 
 ### HOD Navigation
 
@@ -309,7 +306,6 @@ Create placeholder pages for:
 * Fees
 * Timetable
 * Exams
-* Course materials
 * Announcements
 
 Also create:
@@ -330,7 +326,6 @@ Prepare basic module boundaries for:
 * Fees
 * Timetable
 * Exams
-* Materials
 * Announcements
 * Notifications
 * AI assistant
@@ -952,7 +947,7 @@ Academic modules must validate:
 
 ## Hammad — FE
 
-Course materials and AI placeholders can now show real student courses.
+The AI context can now show real student courses.
 
 ## Hammad — BE
 
@@ -1785,7 +1780,6 @@ Display:
 * Recent marks
 * GPA
 * Fee balance
-* Recent materials
 * Announcements
 * Notifications
 * AI chatbot button
@@ -1933,7 +1927,6 @@ Ensure current student services do not treat previous:
 
 * Timetables
 * Exams
-* Materials
 
 as current.
 
@@ -2091,7 +2084,6 @@ Support related academic filtering.
 
 Add simple search/filter where useful for:
 
-* Materials
 * Announcements
 
 ## Hammad — BE
@@ -2236,7 +2228,6 @@ Chatbot should answer using:
 * Timetable
 * Exams
 * Announcements
-* Materials
 
 ### University Knowledge
 
@@ -2500,24 +2491,6 @@ Wrong-section student must not receive timetable.
 
 ---
 
-# Scenario 6 — Course Materials
-
-**Primary: Hammad**
-
-### FE
-
-Teacher uploads → student downloads.
-
-### BE
-
-Verify:
-
-* Teacher assignment
-* Student enrollment
-* File authorization
-
----
-
 # Scenario 7 — AI
 
 **Primary: Hammad**
@@ -2585,7 +2558,6 @@ Prepare:
 * Fees
 * Configurable timetables
 * Exams
-* Materials
 * Announcements
 * Notifications
 * AI knowledge
@@ -2634,7 +2606,6 @@ Show:
 * Fees
 * Timetable
 * Exams
-* Materials
 * Announcements
 * Notifications
 * Gemini chatbot
@@ -2673,7 +2644,6 @@ Show:
 | Fees                | Hammad        | Hammad   | Hammad   | Sian               |
 | Timetable           | Hammad        | Hammad   | Hammad   | Sian               |
 | Exam Date Sheet     | Hammad        | Hammad   | Hammad   | Sian               |
-| Course Materials    | Hammad        | Hammad   | Hammad   | Sian               |
 | Announcements       | Hammad        | Hammad   | Hammad   | —                  |
 | Notifications       | Hammad        | Hammad   | Hammad   | All                |
 | Student Dashboard   | Hammad        | Hammad   | Hammad   | Tayabba            |
@@ -2805,7 +2775,6 @@ The original development order remains unchanged.
 * Fees
 * Timetable
 * Exams
-* Materials
 
 ---
 
@@ -2995,7 +2964,6 @@ This means each member can explain their feature completely during the FYP defen
 * Fees
 * Timetable
 * Exams
-* Materials
 * Announcements
 * Notifications
 * Floating AI chatbot

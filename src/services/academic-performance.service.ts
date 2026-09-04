@@ -12,7 +12,10 @@ import {
   CourseOfferingModel,
   type CourseOfferingDocument,
 } from '../models/course-offering.model.js'
+import { CourseModel } from '../models/course.model.js'
 import { EnrollmentModel } from '../models/enrollment.model.js'
+import { ResultModel } from '../models/result.model.js'
+import { SectionModel } from '../models/section.model.js'
 import type { UserRole } from '../models/user.model.js'
 import { UserModel, type StudentAcademicStatus, type UserDocument } from '../models/user.model.js'
 import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
@@ -21,8 +24,10 @@ import { listSemesters, type SerializedSemester } from './semester.service.js'
 import { ApiError } from '../utils/api-error.js'
 import { notifyAttendanceUpdated } from './notification.service.js'
 import type {
+  AcademicPerformanceOfferingsQuery,
   AttendanceConfigurationPayload,
   AttendanceSessionPayload,
+  AttendanceShortagesQuery,
 } from '../validators/academic-performance.validator.js'
 
 export type AcademicPerformanceModule = 'attendance' | 'assessments' | 'marks' | 'results'
@@ -517,29 +522,100 @@ export async function assertCanAccessCourseOffering(user: UserDocument, offering
   throw new ApiError(403, 'Unauthorized course offering access')
 }
 
-async function listStudentOfferings(student: UserDocument) {
-  const enrollments = await EnrollmentModel.find({ student: student._id, isActive: true })
-    .populate({
-      path: 'courseOffering',
-      match: { isActive: true },
-      populate: [
-        { path: 'course', populate: ['department', 'program', 'semester'] },
-        { path: 'section', populate: ['program', 'semester'] },
-        { path: 'teacher', populate: ['department'] },
-      ],
-    })
-    .exec()
+const relationSearchLimit = 500
 
-  const offerings = enrollments
-    .map((enrollment) => enrollment.courseOffering)
-    .filter(Boolean) as unknown as CourseOfferingDocument[]
-
-  return Promise.all(offerings.map((offering) => serializeCourseOffering(offering)))
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-async function listTeacherOfferings(teacher: UserDocument) {
-  const offerings = await CourseOfferingModel.find({ teacher: teacher._id, isActive: true })
+async function findCourseIds(user: UserDocument, query: AcademicPerformanceOfferingsQuery) {
+  const departmentId = user.role === 'hod' ? user.department?.toString() : query.departmentId
+  const shouldFilter = Boolean(departmentId || query.programId || query.semesterId || query.search)
+  if (!shouldFilter) return null
+
+  const filter: Record<string, unknown> = { isActive: true }
+  if (departmentId) filter.department = departmentId
+  if (query.programId) filter.program = query.programId
+  if (query.semesterId) filter.semester = query.semesterId
+  if (query.search) {
+    const search = new RegExp(escapeRegExp(query.search), 'i')
+    filter.$or = [{ code: search }, { title: search }]
+  }
+
+  const courses = await CourseModel.find(filter)
+    .select('_id')
+    .limit(relationSearchLimit)
+    .lean()
+    .exec()
+  return courses.map((course) => course._id)
+}
+
+async function findSectionIds(query: AcademicPerformanceOfferingsQuery) {
+  const shouldFilter = Boolean(
+    query.sectionId || query.programId || query.batchId || query.semesterId
+  )
+  if (!shouldFilter) return null
+
+  const filter: Record<string, unknown> = { isActive: true }
+  if (query.sectionId) filter._id = query.sectionId
+  if (query.programId) filter.program = query.programId
+  if (query.batchId) filter.batch = query.batchId
+  if (query.semesterId) filter.semester = query.semesterId
+
+  const sections = await SectionModel.find(filter)
+    .select('_id')
+    .limit(relationSearchLimit)
+    .lean()
+    .exec()
+  return sections.map((section) => section._id)
+}
+
+async function findResultOfferingIds(status: AcademicPerformanceOfferingsQuery['resultStatus']) {
+  if (!status) return null
+
+  const results = await ResultModel.find({ status })
+    .select('courseOffering')
+    .limit(relationSearchLimit)
+    .lean()
+    .exec()
+  return results.map((result) => result.courseOffering)
+}
+
+async function findStudentOfferingIds(user: UserDocument) {
+  if (user.role !== 'student') return null
+
+  const enrollments = await EnrollmentModel.find({ student: user._id, isActive: true })
+    .select('courseOffering')
+    .limit(relationSearchLimit)
+    .lean()
+    .exec()
+  return enrollments.map((enrollment) => enrollment.courseOffering)
+}
+
+export async function listAcademicPerformanceOfferings(
+  user: UserDocument,
+  query: AcademicPerformanceOfferingsQuery = { limit: 50 }
+) {
+  if (user.role === 'hod' && !user.department) {
+    throw new ApiError(403, 'HOD department assignment required')
+  }
+
+  const [courseIds, sectionIds, resultOfferingIds, studentOfferingIds] = await Promise.all([
+    findCourseIds(user, query),
+    findSectionIds(query),
+    findResultOfferingIds(query.resultStatus),
+    findStudentOfferingIds(user),
+  ])
+  const filter: Record<string, unknown> = { isActive: true }
+  if (user.role === 'teacher') filter.teacher = user._id
+  if (courseIds) filter.course = { $in: courseIds }
+  if (sectionIds) filter.section = { $in: sectionIds }
+  if (resultOfferingIds) filter._id = { $in: resultOfferingIds }
+  if (studentOfferingIds) filter._id = { $in: studentOfferingIds }
+
+  const offerings = await CourseOfferingModel.find(filter)
     .sort({ createdAt: 1 })
+    .limit(query.limit)
     .populate({ path: 'course', populate: ['department', 'program', 'semester'] })
     .populate({ path: 'section', populate: ['program', 'semester'] })
     .populate({ path: 'teacher', populate: ['department'] })
@@ -550,41 +626,6 @@ async function listTeacherOfferings(teacher: UserDocument) {
       serializeCourseOffering(offering as unknown as CourseOfferingDocument)
     )
   )
-}
-
-async function listManagedOfferings(user: UserDocument) {
-  const offerings = await CourseOfferingModel.find({ isActive: true })
-    .sort({ createdAt: 1 })
-    .populate({ path: 'course', populate: ['department', 'program', 'semester'] })
-    .populate({ path: 'section', populate: ['program', 'semester'] })
-    .populate({ path: 'teacher', populate: ['department'] })
-    .exec()
-
-  const serializedOfferings = await Promise.all(
-    offerings.map((offering) =>
-      serializeCourseOffering(offering as unknown as CourseOfferingDocument)
-    )
-  )
-
-  if (user.role !== 'hod' || !user.department) {
-    return serializedOfferings
-  }
-
-  return serializedOfferings.filter(
-    (offering) => offering.course.department.id === user.department!.toString()
-  )
-}
-
-export async function listAcademicPerformanceOfferings(user: UserDocument) {
-  if (user.role === 'student') {
-    return listStudentOfferings(user)
-  }
-
-  if (user.role === 'teacher') {
-    return listTeacherOfferings(user)
-  }
-
-  return listManagedOfferings(user)
 }
 
 export async function listAcademicPerformanceOfferingStudents(
@@ -842,12 +883,23 @@ export async function getStudentAttendanceSummaries(
   )
 }
 
-export async function listLowAttendanceStudents(user: UserDocument): Promise<AttendanceShortage[]> {
+export async function listLowAttendanceStudents(
+  user: UserDocument,
+  query: AttendanceShortagesQuery = { page: 1, limit: 20 }
+) {
   if (user.role !== 'hod' && user.role !== 'admin') {
     throw new ApiError(403, 'HOD attendance access required')
   }
 
-  const offerings = await listAcademicPerformanceOfferings(user)
+  const offerings = await listAcademicPerformanceOfferings(user, {
+    search: query.search,
+    departmentId: query.departmentId,
+    programId: query.programId,
+    batchId: query.batchId,
+    semesterId: query.semesterId,
+    sectionId: query.sectionId,
+    limit: 50,
+  })
   const [sessions, configuration] = await Promise.all([
     AttendanceSessionModel.find({
       courseOffering: { $in: offerings.map((offering) => offering.id) },
@@ -874,8 +926,34 @@ export async function listLowAttendanceStudents(user: UserDocument): Promise<Att
     })
   )
 
-  return shortageGroups
+  const shortages = shortageGroups
     .flat()
     .filter((summary) => summary.isBelowThreshold)
     .sort((left, right) => left.attendancePercentage - right.attendancePercentage)
+
+  return pageAttendanceShortages(shortages, query)
+}
+
+export function pageAttendanceShortages(
+  shortages: AttendanceShortage[],
+  query: Pick<AttendanceShortagesQuery, 'studentSearch' | 'page' | 'limit'>
+) {
+  const search = query.studentSearch?.toLowerCase()
+  const filtered = search
+    ? shortages.filter((shortage) =>
+        [shortage.student.name, shortage.student.registrationNumber].some((value) =>
+          value.toLowerCase().includes(search)
+        )
+      )
+    : shortages
+  const total = filtered.length
+  const start = (query.page - 1) * query.limit
+
+  return {
+    shortages: filtered.slice(start, start + query.limit),
+    page: query.page,
+    limit: query.limit,
+    total,
+    totalPages: Math.ceil(total / query.limit),
+  }
 }

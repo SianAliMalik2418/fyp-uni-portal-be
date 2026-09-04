@@ -143,9 +143,45 @@ describe('academic performance offering routes', () => {
       .expect(200)
 
     expect(academicPerformanceService.listAcademicPerformanceOfferings).toHaveBeenCalledWith(
-      expect.objectContaining({ id: teacherDocument.id, role: 'teacher' })
+      expect.objectContaining({ id: teacherDocument.id, role: 'teacher' }),
+      { limit: 50 }
     )
     expect(response.body).toEqual({ offerings: [offering] })
+  })
+
+  it('passes result and academic filters to the bounded offering search', async () => {
+    authenticateAs({ ...teacherDocument, role: 'hod' })
+    vi.mocked(academicPerformanceService.listAcademicPerformanceOfferings).mockResolvedValue([])
+
+    await request(app)
+      .get(
+        '/api/academic-performance/offerings?search=programming&programId=program-1&semesterId=semester-1&sectionId=section-1&resultStatus=pending&limit=25'
+      )
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(academicPerformanceService.listAcademicPerformanceOfferings).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'hod' }),
+      {
+        search: 'programming',
+        programId: 'program-1',
+        semesterId: 'semester-1',
+        sectionId: 'section-1',
+        resultStatus: 'pending',
+        limit: 25,
+      }
+    )
+  })
+
+  it('rejects offering searches above the backend limit', async () => {
+    authenticateAs(teacherDocument)
+
+    await request(app)
+      .get('/api/academic-performance/offerings?limit=51')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(400)
+
+    expect(academicPerformanceService.listAcademicPerformanceOfferings).not.toHaveBeenCalled()
   })
 
   it('returns enrolled students for an accessible course offering', async () => {

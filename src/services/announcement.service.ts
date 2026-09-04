@@ -44,6 +44,10 @@ function ensureValidAnnouncementId(announcementId: string) {
   }
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function statusFilter(status: AnnouncementQuery['status'], now: Date) {
   if (status === 'expired') return { expiryDate: { $lte: now } }
   if (status === 'scheduled') return { isActive: true, publishDate: { $gt: now } }
@@ -59,7 +63,21 @@ function statusFilter(status: AnnouncementQuery['status'], now: Date) {
 export async function listAnnouncements(user: UserDocument, query: AnnouncementQuery) {
   const now = new Date()
   const effectiveStatus = user.role === 'admin' ? query.status : 'active'
-  const filter = statusFilter(effectiveStatus, now)
+  const baseFilter = statusFilter(effectiveStatus, now)
+  const searchFilter = query.search
+    ? {
+        $or: [
+          { title: new RegExp(escapeRegExp(query.search), 'i') },
+          { description: new RegExp(escapeRegExp(query.search), 'i') },
+        ],
+      }
+    : null
+  const filter = {
+    ...(searchFilter && '$or' in baseFilter
+      ? { $and: [baseFilter, searchFilter] }
+      : { ...baseFilter, ...searchFilter }),
+    ...(query.isPinned === undefined ? {} : { isPinned: query.isPinned }),
+  }
   const skip = (query.page - 1) * query.limit
   const [announcements, total] = await Promise.all([
     AnnouncementModel.find(filter)

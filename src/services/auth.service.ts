@@ -11,6 +11,7 @@ export interface AuthenticatedUser {
   id: string
   name: string
   email: string
+  profilePictureUrl?: string
   role: UserRole
   accountStatus: 'active' | 'inactive'
   isActive: boolean
@@ -57,6 +58,7 @@ export function serializeUser(user: UserDocument): AuthenticatedUser {
     id: user.id,
     name: user.fullName,
     email: user.email,
+    profilePictureUrl: user.profilePictureUrl,
     role: user.role,
     accountStatus: user.isActive ? 'active' : 'inactive',
     isActive: user.isActive,

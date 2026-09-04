@@ -5,18 +5,25 @@ import {
   getOwnUserController,
   getUserController,
   listUsersController,
+  getPromotionCandidatesController,
+  promoteStudentsController,
+  importStudentsController,
   resetUserPasswordController,
   updateUserController,
 } from '../controllers/users.controller.js'
 import { requireAuth, requireRoles } from '../middlewares/auth.middleware.js'
+import { studentImportUpload } from '../middlewares/student-import.middleware.js'
 
 export const usersRoutes = Router()
 
 usersRoutes.use(requireAuth)
 usersRoutes.get('/me', getOwnUserController)
+usersRoutes.get('/', requireRoles('admin', 'hod'), listUsersController)
 
 usersRoutes.use(requireRoles('admin'))
-usersRoutes.get('/', listUsersController)
+usersRoutes.get('/promotions/candidates', getPromotionCandidatesController)
+usersRoutes.post('/promotions', promoteStudentsController)
+usersRoutes.post('/import', studentImportUpload, importStudentsController)
 usersRoutes.post('/', createUserController)
 usersRoutes.get('/:userId', getUserController)
 usersRoutes.patch('/:userId', updateUserController)

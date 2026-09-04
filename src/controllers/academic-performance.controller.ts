@@ -34,12 +34,15 @@ import {
 } from '../services/result.service.js'
 import { getGradingScale, updateGradingScale } from '../services/grading-scale.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import {
   academicPerformanceOfferingParamsSchema,
+  academicPerformanceOfferingsQuerySchema,
   attendanceConfigurationPayloadSchema,
   attendanceSessionParamsSchema,
   attendanceSessionPayloadSchema,
   attendanceSessionsQuerySchema,
+  attendanceShortagesQuerySchema,
   assessmentParamsSchema,
   assessmentConfigurationPayloadSchema,
   assessmentPayloadSchema,
@@ -71,12 +74,24 @@ export const getCourseResultController = asyncHandler(async (req, res) => {
 export const submitCourseResultController = asyncHandler(async (req, res) => {
   const { offeringId } = academicPerformanceOfferingParamsSchema.parse(req.params)
   const result = await submitCourseResult(req.auth!.user, offeringId)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'submitted',
+    module: 'results',
+    affectedRecord: { id: result.id ?? offeringId },
+  })
   res.status(200).json({ message: 'Result submitted for HOD approval.', result })
 })
 
 export const approveCourseResultController = asyncHandler(async (req, res) => {
   const { resultId } = resultParamsSchema.parse(req.params)
   const result = await approveCourseResult(req.auth!.user, resultId)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'approved',
+    module: 'results',
+    affectedRecord: { id: resultId },
+  })
   res.status(200).json({ message: 'Result approved and published.', result })
 })
 
@@ -84,6 +99,13 @@ export const returnCourseResultController = asyncHandler(async (req, res) => {
   const { resultId } = resultParamsSchema.parse(req.params)
   const payload = resultCommentPayloadSchema.parse(req.body)
   const result = await returnCourseResult(req.auth!.user, resultId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'returned',
+    module: 'results',
+    affectedRecord: { id: resultId },
+    reason: payload.comment,
+  })
   res.status(200).json({ message: 'Result returned to the teacher.', result })
 })
 
@@ -91,6 +113,13 @@ export const reopenCourseResultController = asyncHandler(async (req, res) => {
   const { resultId } = resultParamsSchema.parse(req.params)
   const payload = resultCommentPayloadSchema.parse(req.body)
   const result = await reopenCourseResult(req.auth!.user, resultId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'reopened',
+    module: 'results',
+    affectedRecord: { id: resultId },
+    reason: payload.comment,
+  })
   res.status(200).json({ message: 'Result reopened for correction.', result })
 })
 
@@ -113,6 +142,12 @@ export const getGradingScaleController = asyncHandler(async (_req, res) => {
 export const updateGradingScaleController = asyncHandler(async (req, res) => {
   const payload = gradingScalePayloadSchema.parse(req.body)
   const gradingScale = await updateGradingScale(payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'results',
+    affectedRecord: { id: 'grading-scale', label: 'Grading scale' },
+  })
   res.status(200).json({ message: 'Grading scale updated.', gradingScale })
 })
 
@@ -125,6 +160,12 @@ export const getAssessmentStructureController = asyncHandler(async (_req, res) =
 export const updateAssessmentStructureController = asyncHandler(async (req, res) => {
   const payload = assessmentConfigurationPayloadSchema.parse(req.body)
   const structure = await updateAssessmentStructure(payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'assessments',
+    affectedRecord: { id: 'assessment-structure', label: 'Assessment structure' },
+  })
 
   res.status(200).json({
     message: 'Assessment structure updated.',
@@ -135,6 +176,12 @@ export const updateAssessmentStructureController = asyncHandler(async (req, res)
 export const createAssessmentController = asyncHandler(async (req, res) => {
   const payload = assessmentPayloadSchema.parse(req.body)
   const assessment = await createAssessment(req.auth!.user, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'created',
+    module: 'assessments',
+    affectedRecord: { id: assessment.id, label: assessment.name },
+  })
 
   res.status(201).json({ message: 'Assessment created successfully.', assessment })
 })
@@ -157,6 +204,12 @@ export const saveMarkSheetDraftController = asyncHandler(async (req, res) => {
   const { assessmentId } = assessmentParamsSchema.parse(req.params)
   const payload = markSheetPayloadSchema.parse(req.body)
   const sheet = await saveMarkSheetDraft(req.auth!.user, assessmentId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'saved',
+    module: 'marks',
+    affectedRecord: { id: assessmentId, label: 'Marks draft' },
+  })
 
   res.status(200).json({ message: 'Marks draft saved successfully.', sheet })
 })
@@ -177,6 +230,12 @@ export const getAttendanceConfigurationController = asyncHandler(async (_req, re
 export const updateAttendanceConfigurationController = asyncHandler(async (req, res) => {
   const payload = attendanceConfigurationPayloadSchema.parse(req.body)
   const configuration = await updateAttendanceConfiguration(payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'attendance',
+    affectedRecord: { id: 'attendance-configuration', label: 'Attendance configuration' },
+  })
 
   res.status(200).json({
     message: 'Attendance settings updated.',
@@ -191,7 +250,8 @@ export const getAcademicPerformanceContextController = asyncHandler(async (req, 
 })
 
 export const listAcademicPerformanceOfferingsController = asyncHandler(async (req, res) => {
-  const offerings = await listAcademicPerformanceOfferings(req.auth!.user)
+  const query = academicPerformanceOfferingsQuerySchema.parse(req.query)
+  const offerings = await listAcademicPerformanceOfferings(req.auth!.user, query)
 
   res.status(200).json({ offerings })
 })
@@ -206,6 +266,15 @@ export const listAcademicPerformanceOfferingStudentsController = asyncHandler(as
 export const saveAttendanceSessionController = asyncHandler(async (req, res) => {
   const payload = attendanceSessionPayloadSchema.parse(req.body)
   const session = await saveAttendanceSession(req.auth!.user, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'saved',
+    module: 'attendance',
+    affectedRecord: {
+      id: session.id,
+      label: `${session.offering.course.title} attendance for ${session.date}`,
+    },
+  })
 
   res.status(200).json({ message: 'Attendance saved successfully.', session })
 })
@@ -214,6 +283,15 @@ export const updateAttendanceSessionController = asyncHandler(async (req, res) =
   const { sessionId } = attendanceSessionParamsSchema.parse(req.params)
   const payload = attendanceSessionPayloadSchema.parse(req.body)
   const session = await updateAttendanceSession(req.auth!.user, sessionId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'attendance',
+    affectedRecord: {
+      id: session.id,
+      label: `${session.offering.course.title} attendance for ${session.date}`,
+    },
+  })
 
   res.status(200).json({ message: 'Attendance updated successfully.', session })
 })
@@ -239,7 +317,8 @@ export const getStudentAttendanceSummariesController = asyncHandler(async (req, 
 })
 
 export const listLowAttendanceStudentsController = asyncHandler(async (req, res) => {
-  const shortages = await listLowAttendanceStudents(req.auth!.user)
+  const query = attendanceShortagesQuerySchema.parse(req.query)
+  const result = await listLowAttendanceStudents(req.auth!.user, query)
 
-  res.status(200).json({ shortages })
+  res.status(200).json(result)
 })

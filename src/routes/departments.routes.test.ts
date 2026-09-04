@@ -18,6 +18,10 @@ vi.mock('../services/department.service.js', () => ({
   updateDepartment: vi.fn(),
 }))
 
+vi.mock('../services/audit-log.service.js', () => ({
+  recordAuditLog: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -29,6 +33,7 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const departmentService = await import('../services/department.service.js')
 const { app } = await import('../app.js')
 
@@ -60,6 +65,7 @@ function authenticateAs(user: MockUserDocument) {
 describe('departments routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
     vi.mocked(departmentService.createDepartment).mockReset()
     vi.mocked(departmentService.deleteDepartment).mockReset()
     vi.mocked(departmentService.listDepartments).mockReset()
@@ -103,6 +109,15 @@ describe('departments routes', () => {
     expect(response.body).toEqual({
       message: 'Department created',
       department: computerScienceDepartment,
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'departments',
+      affectedRecord: {
+        id: computerScienceDepartment.id,
+        label: computerScienceDepartment.name,
+      },
     })
   })
 

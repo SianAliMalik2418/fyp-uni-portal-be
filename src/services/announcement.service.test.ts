@@ -25,7 +25,11 @@ describe('announcement service', () => {
       exec: vi.fn().mockResolvedValue(0),
     } as never)
 
-    await listAnnouncements({ role: 'student' } as never, { status: 'all', page: 1, limit: 20 })
+    await listAnnouncements({ role: 'student' } as never, {
+      status: 'all',
+      page: 1,
+      limit: 20,
+    })
 
     const activeFilter = {
       isActive: true,
@@ -36,5 +40,33 @@ describe('announcement service', () => {
     expect(announcementModel.AnnouncementModel.countDocuments).toHaveBeenCalledWith(activeFilter)
     expect(sort).toHaveBeenCalledWith({ isPinned: -1, publishDate: -1, createdAt: -1 })
     expect(limit).toHaveBeenCalledWith(20)
+  })
+
+  it('combines admin status, pinned, and text filters before pagination', async () => {
+    const exec = vi.fn().mockResolvedValue([])
+    const limit = vi.fn().mockReturnValue({ exec })
+    const skip = vi.fn().mockReturnValue({ limit })
+    const sort = vi.fn().mockReturnValue({ skip })
+    vi.mocked(announcementModel.AnnouncementModel.find).mockReturnValue({ sort } as never)
+    vi.mocked(announcementModel.AnnouncementModel.countDocuments).mockReturnValue({
+      exec: vi.fn().mockResolvedValue(0),
+    } as never)
+
+    await listAnnouncements({ role: 'admin' } as never, {
+      status: 'all',
+      search: 'registration',
+      isPinned: true,
+      page: 2,
+      limit: 10,
+    })
+
+    const filter = {
+      isPinned: true,
+      $or: [{ title: /registration/i }, { description: /registration/i }],
+    }
+    expect(announcementModel.AnnouncementModel.find).toHaveBeenCalledWith(filter)
+    expect(announcementModel.AnnouncementModel.countDocuments).toHaveBeenCalledWith(filter)
+    expect(skip).toHaveBeenCalledWith(10)
+    expect(limit).toHaveBeenCalledWith(10)
   })
 })

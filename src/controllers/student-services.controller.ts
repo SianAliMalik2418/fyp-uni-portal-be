@@ -1,10 +1,6 @@
-import type { RequestHandler } from 'express'
-import {
-  getStudentServiceContext,
-  getStudentServicePlaceholder,
-  type StudentServiceModule,
-} from '../services/student-services.service.js'
+import { getStudentServiceContext } from '../services/student-services.service.js'
 import { ApiError } from '../utils/api-error.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { listNotifications, markNotificationRead } from '../services/notification.service.js'
 import { markAllNotificationsRead } from '../services/notification.service.js'
@@ -22,16 +18,14 @@ import {
   createAnnouncementSchema,
   updateAnnouncementSchema,
 } from '../validators/announcement.validator.js'
+import { aiChatRequestSchema } from '../validators/ai-assistant.validator.js'
+import { askStudentAssistant } from '../services/ai-assistant.service.js'
 
-function createStudentServiceController(module: StudentServiceModule): RequestHandler {
-  return (_req, res) => {
-    res.json(getStudentServicePlaceholder(module))
-  }
-}
-
-export const getFeesPlaceholder = createStudentServiceController('fees')
-export const getMaterialsPlaceholder = createStudentServiceController('materials')
-export const getAiAssistantPlaceholder = createStudentServiceController('ai-assistant')
+export const askStudentAssistantController = asyncHandler(async (req, res) => {
+  const request = aiChatRequestSchema.parse(req.body)
+  const response = await askStudentAssistant(req.auth!.user, request)
+  res.status(200).json(response)
+})
 
 export const getStudentServiceContextController = asyncHandler(async (req, res) => {
   const auth = req.auth
@@ -70,6 +64,12 @@ export const listAnnouncementsController = asyncHandler(async (req, res) => {
 export const createAnnouncementController = asyncHandler(async (req, res) => {
   const payload = createAnnouncementSchema.parse(req.body)
   const announcement = await createAnnouncement(req.auth!.user, payload, req.file)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'created',
+    module: 'announcements',
+    affectedRecord: { id: announcement.id, label: announcement.title },
+  })
   res.status(201).json({ message: 'Announcement created.', announcement })
 })
 
@@ -77,12 +77,24 @@ export const updateAnnouncementController = asyncHandler(async (req, res) => {
   const { announcementId } = announcementParamsSchema.parse(req.params)
   const payload = updateAnnouncementSchema.parse(req.body)
   const announcement = await updateAnnouncement(announcementId, payload, req.file)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'announcements',
+    affectedRecord: { id: announcement.id, label: announcement.title },
+  })
   res.status(200).json({ message: 'Announcement updated.', announcement })
 })
 
 export const deleteAnnouncementController = asyncHandler(async (req, res) => {
   const { announcementId } = announcementParamsSchema.parse(req.params)
   await deleteAnnouncement(announcementId)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'deleted',
+    module: 'announcements',
+    affectedRecord: { id: announcementId },
+  })
   res.status(204).send()
 })
 

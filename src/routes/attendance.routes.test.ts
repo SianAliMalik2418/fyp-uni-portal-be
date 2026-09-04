@@ -32,6 +32,7 @@ vi.mock('../services/academic-performance.service.js', () => ({
   updateAttendanceSession: vi.fn(),
   updateAttendanceConfiguration: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 type MockUserDocument = {
   id: string
@@ -45,6 +46,7 @@ type MockUserDocument = {
 
 const authService = await import('../services/auth.service.js')
 const academicPerformanceService = await import('../services/academic-performance.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const teacherDocument: MockUserDocument = {
@@ -161,6 +163,43 @@ describe('attendance routes', () => {
     vi.mocked(academicPerformanceService.updateAttendanceConfiguration).mockReset()
   })
 
+  it('passes shortage search and academic filters through a bounded query', async () => {
+    authenticateAs({ ...teacherDocument, role: 'hod' })
+    vi.mocked(academicPerformanceService.listLowAttendanceStudents).mockResolvedValue({
+      shortages: [],
+      page: 2,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    } as never)
+
+    const response = await request(app)
+      .get(
+        '/api/attendance/shortages?studentSearch=ayesha&programId=program-1&semesterId=semester-1&sectionId=section-1&page=2&limit=10'
+      )
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(academicPerformanceService.listLowAttendanceStudents).toHaveBeenCalledWith(
+      expect.objectContaining({ role: 'hod' }),
+      {
+        studentSearch: 'ayesha',
+        programId: 'program-1',
+        semesterId: 'semester-1',
+        sectionId: 'section-1',
+        page: 2,
+        limit: 10,
+      }
+    )
+    expect(response.body).toEqual({
+      shortages: [],
+      page: 2,
+      limit: 10,
+      total: 0,
+      totalPages: 0,
+    })
+  })
+
   it('lets teachers save attendance sessions', async () => {
     authenticateAs(teacherDocument)
     vi.mocked(academicPerformanceService.saveAttendanceSession).mockResolvedValue(
@@ -186,6 +225,15 @@ describe('attendance routes', () => {
     expect(response.body).toEqual({
       message: 'Attendance saved successfully.',
       session: attendanceSession,
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: teacherDocument,
+      action: 'saved',
+      module: 'attendance',
+      affectedRecord: {
+        id: attendanceSession.id,
+        label: 'Programming Fundamentals attendance for 2026-08-11',
+      },
     })
   })
 
@@ -218,19 +266,25 @@ describe('attendance routes', () => {
 
   it('returns low-attendance students for HOD review', async () => {
     authenticateAs({ ...teacherDocument, role: 'hod' })
-    vi.mocked(academicPerformanceService.listLowAttendanceStudents).mockResolvedValue([
-      {
-        student: attendanceSession.records[0].student,
-        offering,
-        totalClasses: 4,
-        present: 2,
-        absent: 2,
-        leave: 0,
-        attendancePercentage: 50,
-        requiredPercentage: 75,
-        isBelowThreshold: true,
-      },
-    ])
+    vi.mocked(academicPerformanceService.listLowAttendanceStudents).mockResolvedValue({
+      shortages: [
+        {
+          student: attendanceSession.records[0].student,
+          offering,
+          totalClasses: 4,
+          present: 2,
+          absent: 2,
+          leave: 0,
+          attendancePercentage: 50,
+          requiredPercentage: 75,
+          isBelowThreshold: true,
+        },
+      ],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     const response = await request(app)
       .get('/api/attendance/shortages')
@@ -242,6 +296,7 @@ describe('attendance routes', () => {
       attendancePercentage: 50,
       requiredPercentage: 75,
     })
+    expect(response.body).toMatchObject({ page: 1, limit: 20, total: 1, totalPages: 1 })
   })
 
   it('exposes the configured attendance threshold to authenticated users', async () => {

@@ -17,6 +17,7 @@ vi.mock('../services/timetable.service.js', () => ({
   publishSectionTimetableDraft: vi.fn(),
   saveSectionTimetableDraft: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 type MockUserDocument = {
   id: string
@@ -30,6 +31,7 @@ type MockUserDocument = {
 
 const authService = await import('../services/auth.service.js')
 const timetableService = await import('../services/timetable.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const adminDocument: MockUserDocument = {
@@ -187,6 +189,12 @@ describe('timetable routes', () => {
       message: 'Timetable draft saved',
       timetable: draftTimetable,
     })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'saved',
+      module: 'timetable',
+      affectedRecord: { id: draftTimetable.id, label: 'Section A draft' },
+    })
   })
 
   it('lets admins publish a section draft timetable', async () => {
@@ -206,6 +214,12 @@ describe('timetable routes', () => {
     expect(response.body).toEqual({
       message: 'Timetable published',
       timetable: publishedTimetable,
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'published',
+      module: 'timetable',
+      affectedRecord: { id: publishedTimetable.id, label: 'Section A timetable' },
     })
   })
 

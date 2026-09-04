@@ -15,9 +15,11 @@ vi.mock('../services/exam.service.js', () => ({
   listTeacherExams: vi.fn(),
   updateExam: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 const authService = await import('../services/auth.service.js')
 const examService = await import('../services/exam.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 type MockUserDocument = {
@@ -109,6 +111,24 @@ describe('exam routes', () => {
     expect(deleted.body).toEqual({ message: 'Exam entry deleted' })
     expect(examService.updateExam).toHaveBeenCalledWith(exam.id, payload, user.id)
     expect(examService.deleteExam).toHaveBeenCalledWith(exam.id)
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(1, {
+      actor: expect.objectContaining({ id: user.id, role: 'admin' }),
+      action: 'created',
+      module: 'exams',
+      affectedRecord: { id: exam.id, label: 'Final: Programming Fundamentals' },
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(2, {
+      actor: expect.objectContaining({ id: user.id, role: 'admin' }),
+      action: 'updated',
+      module: 'exams',
+      affectedRecord: { id: exam.id, label: 'Final: Programming Fundamentals' },
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(3, {
+      actor: expect.objectContaining({ id: user.id, role: 'admin' }),
+      action: 'deleted',
+      module: 'exams',
+      affectedRecord: { id: exam.id },
+    })
   })
 
   it('lets admins list exams for one section', async () => {

@@ -9,6 +9,7 @@ import {
 } from '../services/exam.service.js'
 import { ApiError } from '../utils/api-error.js'
 import { asyncHandler } from '../utils/async-handler.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import {
   adminExamQuerySchema,
   examParamsSchema,
@@ -26,6 +27,12 @@ function getRequestUser(req: Request) {
 export const createExamController = asyncHandler(async (req, res) => {
   const payload = saveExamSchema.parse(req.body)
   const exam = await createExam(payload, getRequestUser(req).id)
+  await recordAuditLog({
+    actor: getRequestUser(req),
+    action: 'created',
+    module: 'exams',
+    affectedRecord: { id: exam.id, label: `${exam.examType}: ${exam.course.title}` },
+  })
 
   res.status(201).json({ message: 'Exam entry created', exam })
 })
@@ -34,6 +41,12 @@ export const updateExamController = asyncHandler(async (req, res) => {
   const { examId } = examParamsSchema.parse(req.params)
   const payload = saveExamSchema.parse(req.body)
   const exam = await updateExam(examId, payload, getRequestUser(req).id)
+  await recordAuditLog({
+    actor: getRequestUser(req),
+    action: 'updated',
+    module: 'exams',
+    affectedRecord: { id: exam.id, label: `${exam.examType}: ${exam.course.title}` },
+  })
 
   res.status(200).json({ message: 'Exam entry updated', exam })
 })
@@ -41,6 +54,12 @@ export const updateExamController = asyncHandler(async (req, res) => {
 export const deleteExamController = asyncHandler(async (req, res) => {
   const { examId } = examParamsSchema.parse(req.params)
   await deleteExam(examId)
+  await recordAuditLog({
+    actor: getRequestUser(req),
+    action: 'deleted',
+    module: 'exams',
+    affectedRecord: { id: examId },
+  })
 
   res.status(200).json({ message: 'Exam entry deleted' })
 })

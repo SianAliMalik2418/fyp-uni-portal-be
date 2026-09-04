@@ -38,17 +38,6 @@ The current backend uses custom email/password session authentication.
 
 Account creation is admin-provisioned. A developer-created super admin creates initial admin accounts, and admins create teacher, HOD, student, and other role accounts. Newly created users receive the default temporary password `@Abc1234`, stored only as a secure hash, and must change it before normal portal access.
 
-The Better Auth documentation MCP server is configured at the repository root in `mcp.json`, pointing to `https://mcp.better-auth.com/mcp`, so AI-capable development tools can query current Better Auth setup and integration docs.
-
-Better Auth agent skills are also installed under `.agents/skills`:
-
-- `better-auth-best-practices`
-- `create-auth`
-- `better-auth-security-best-practices`
-- `email-and-password-best-practices`
-- `organization-best-practices`
-- `two-factor-authentication-best-practices`
-
 Current auth implementation:
 
 - `src/models/user.model.ts`: User model with role, active state, password hash, and temporary-password flags.
@@ -60,7 +49,7 @@ Current auth implementation:
 
 Passwords are hashed with Node `crypto.scryptSync`. Session tokens are random, sent in HTTP-only cookies, and stored in MongoDB only as SHA-256 hashes. Role-based authorization must remain backend-enforced because the requirements require protected API routes, role-based access, data ownership checks, HTTP-only cookies, password-change onboarding checks, and restricted AI data access.
 
-Better Auth docs and local Better Auth skills are available for a future migration, but Better Auth is not the current runtime auth provider.
+No third-party authentication provider is required for this app. Custom backend sessions are the committed authentication approach for the current FYP scope.
 
 ## Scheduling
 

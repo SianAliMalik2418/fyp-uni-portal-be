@@ -40,6 +40,7 @@ vi.mock('../services/assessment.service.js', () => ({
   saveMarkSheetDraft: vi.fn(),
   updateAssessmentStructure: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 type MockUser = {
   id: string
@@ -53,6 +54,7 @@ type MockUser = {
 
 const authService = await import('../services/auth.service.js')
 const assessmentService = await import('../services/assessment.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const teacher: MockUser = {
@@ -163,6 +165,12 @@ describe('assessment and marks routes', () => {
       message: 'Assessment created successfully.',
       assessment,
     })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: teacher,
+      action: 'created',
+      module: 'assessments',
+      affectedRecord: { id: assessment.id, label: assessment.name },
+    })
   })
 
   it('saves numeric and special-status mark records as a draft', async () => {
@@ -189,6 +197,12 @@ describe('assessment and marks routes', () => {
       payload
     )
     expect(response.body).toEqual({ message: 'Marks draft saved successfully.', sheet })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: teacher,
+      action: 'saved',
+      module: 'marks',
+      affectedRecord: { id: '507f1f77bcf86cd799439013', label: 'Marks draft' },
+    })
   })
 
   it('rejects mark records that mix a number with a special status', async () => {

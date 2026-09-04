@@ -43,6 +43,7 @@ vi.mock('../services/announcement.service.js', () => ({
   listAnnouncements: vi.fn(),
   updateAnnouncement: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 type MockUserDocument = {
   id: string
@@ -61,6 +62,7 @@ const semesterService = await import('../services/semester.service.js')
 const userModel = await import('../models/user.model.js')
 const notificationService = await import('../services/notification.service.js')
 const announcementService = await import('../services/announcement.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const baseUser: MockUserDocument = {
@@ -192,6 +194,15 @@ describe('student services routes', () => {
     vi.mocked(notificationService.markAllNotificationsRead).mockReset()
   })
 
+  it('does not expose the removed course materials phase', async () => {
+    authenticateAs('student')
+
+    await request(app)
+      .get('/api/materials')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(404)
+  })
+
   it('returns active announcements for every authenticated portal role', async () => {
     authenticateAs('hod')
     vi.mocked(announcementService.listAnnouncements).mockResolvedValue({
@@ -263,6 +274,25 @@ describe('student services routes', () => {
       .delete(`/api/announcements/${announcement.id}`)
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(204)
+
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(1, {
+      actor: expect.objectContaining({ id: baseUser.id, role: 'admin' }),
+      action: 'created',
+      module: 'announcements',
+      affectedRecord: { id: announcement.id, label: announcement.title },
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(2, {
+      actor: expect.objectContaining({ id: baseUser.id, role: 'admin' }),
+      action: 'updated',
+      module: 'announcements',
+      affectedRecord: { id: announcement.id, label: announcement.title },
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenNthCalledWith(3, {
+      actor: expect.objectContaining({ id: baseUser.id, role: 'admin' }),
+      action: 'deleted',
+      module: 'announcements',
+      affectedRecord: { id: announcement.id },
+    })
 
     authenticateAs('teacher')
     await request(app)

@@ -1,4 +1,5 @@
 import { getCurrentStudentFee, upsertCurrentStudentFee } from '../services/fee.service.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import { feeParamsSchema, upsertFeeSchema } from '../validators/fee.validator.js'
 
@@ -19,6 +20,12 @@ export const upsertStudentFeeController = asyncHandler(async (req, res) => {
   const { studentId } = feeParamsSchema.parse(req.params)
   const payload = upsertFeeSchema.parse(req.body)
   const fee = await upsertCurrentStudentFee(studentId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'fees',
+    affectedRecord: { id: fee.id, label: 'Student fee' },
+  })
 
   res.status(200).json({ message: 'Fee information saved', fee })
 })

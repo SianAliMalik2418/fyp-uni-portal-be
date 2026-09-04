@@ -2,14 +2,41 @@ import { z } from 'zod'
 import { attendanceStatuses } from '../models/attendance-session.model.js'
 import { assessmentCategories } from '../models/assessment.model.js'
 import { markStatuses } from '../models/mark-sheet.model.js'
+import { resultStatuses } from '../models/result.model.js'
 
 export const academicPerformanceOfferingParamsSchema = z.object({
   offeringId: z.string().trim().min(1, 'Course offering ID is required'),
 })
 
+const academicFilterFields = {
+  search: z.string().trim().min(1).max(100).optional(),
+  departmentId: z.string().trim().min(1).optional(),
+  programId: z.string().trim().min(1).optional(),
+  batchId: z.string().trim().min(1).optional(),
+  semesterId: z.string().trim().min(1).optional(),
+  sectionId: z.string().trim().min(1).optional(),
+}
+
+export const academicPerformanceOfferingsQuerySchema = z.object({
+  ...academicFilterFields,
+  resultStatus: z.enum(resultStatuses).optional(),
+  limit: z.coerce.number().int().positive().max(50).default(50),
+})
+
+export const attendanceShortagesQuerySchema = z.object({
+  ...academicFilterFields,
+  studentSearch: z.string().trim().min(1).max(100).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(50).default(20),
+})
+
 export type AcademicPerformanceOfferingParams = z.infer<
   typeof academicPerformanceOfferingParamsSchema
 >
+export type AcademicPerformanceOfferingsQuery = z.infer<
+  typeof academicPerformanceOfferingsQuerySchema
+>
+export type AttendanceShortagesQuery = z.infer<typeof attendanceShortagesQuerySchema>
 
 export const attendanceSessionParamsSchema = z.object({
   sessionId: z.string().trim().min(1, 'Attendance session ID is required'),

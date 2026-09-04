@@ -5,7 +5,7 @@ import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 
 export type StudentServiceModule =
-  'fees' | 'timetable' | 'exams' | 'materials' | 'announcements' | 'notifications' | 'ai-assistant'
+  'fees' | 'timetable' | 'exams' | 'announcements' | 'notifications' | 'ai-assistant'
 
 export type StudentServicePlaceholder = {
   module: StudentServiceModule
@@ -71,12 +71,6 @@ const placeholders: Record<StudentServiceModule, Omit<StudentServicePlaceholder,
     items: [],
     empty: true,
     message: 'No exam date sheet available yet.',
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  materials: {
-    items: [],
-    empty: true,
-    message: 'No course materials available yet.',
     allowedRoles: ['student', 'teacher', 'admin'],
   },
   announcements: {

@@ -13,9 +13,11 @@ vi.mock('../services/fee.service.js', () => ({
   getCurrentStudentFee: vi.fn(),
   upsertCurrentStudentFee: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 const authService = await import('../services/auth.service.js')
 const feeService = await import('../services/fee.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const admin = {
@@ -70,6 +72,7 @@ describe('fees routes', () => {
     vi.mocked(authService.resolveSession).mockReset()
     vi.mocked(feeService.getCurrentStudentFee).mockReset()
     vi.mocked(feeService.upsertCurrentStudentFee).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
   })
 
   it('lets a student retrieve only their current fee record', async () => {
@@ -134,6 +137,12 @@ describe('fees routes', () => {
       .expect(200)
 
     expect(feeService.upsertCurrentStudentFee).toHaveBeenCalledWith(student.id, payload)
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: admin,
+      action: 'updated',
+      module: 'fees',
+      affectedRecord: { id: fee.id, label: 'Student fee' },
+    })
     expect(response.body).toEqual({ message: 'Fee information saved', fee })
   })
 

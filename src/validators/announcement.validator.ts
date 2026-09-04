@@ -59,6 +59,8 @@ export const announcementParamsSchema = z.object({
 
 export const announcementQuerySchema = z.object({
   status: z.enum(['active', 'expired', 'scheduled', 'all']).default('active'),
+  search: z.string().trim().min(1).max(100).optional(),
+  isPinned: booleanInput.optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(50).default(20),
 })

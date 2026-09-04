@@ -14,6 +14,7 @@ export type StudentAcademicStatus = (typeof studentAcademicStatuses)[number]
 export interface User {
   fullName: string
   email: string
+  profilePictureUrl?: string
   phoneNumber?: string
   registrationNumber?: string
   employeeId?: string
@@ -39,6 +40,7 @@ const userSchema = new Schema<User>(
   {
     fullName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true },
+    profilePictureUrl: { type: String, trim: true },
     phoneNumber: { type: String, trim: true },
     registrationNumber: { type: String, trim: true, unique: true, sparse: true },
     employeeId: { type: String, trim: true, unique: true, sparse: true },
@@ -57,5 +59,9 @@ const userSchema = new Schema<User>(
   },
   { timestamps: true }
 )
+
+userSchema.index({ role: 1, isActive: 1, fullName: 1 })
+userSchema.index({ department: 1, role: 1, isActive: 1, fullName: 1 })
+userSchema.index({ program: 1, batch: 1, semester: 1, section: 1, isActive: 1 })
 
 export const UserModel = model('User', userSchema)

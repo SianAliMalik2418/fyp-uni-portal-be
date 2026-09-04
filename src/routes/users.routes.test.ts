@@ -22,6 +22,17 @@ vi.mock('../services/user.service.js', () => ({
   DEFAULT_TEMPORARY_PASSWORD: '@Abc1234',
 }))
 
+vi.mock('../services/audit-log.service.js', () => ({
+  recordAuditLog: vi.fn(),
+}))
+
+vi.mock('../services/semester-promotion.service.js', () => ({
+  semesterPromotionService: {
+    getCandidates: vi.fn(),
+    promote: vi.fn(),
+  },
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -33,7 +44,9 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const userService = await import('../services/user.service.js')
+const promotionService = await import('../services/semester-promotion.service.js')
 const { app } = await import('../app.js')
 
 const adminDocument: MockUserDocument = {
@@ -44,6 +57,16 @@ const adminDocument: MockUserDocument = {
   role: 'admin',
   isActive: true,
   mustChangePassword: false,
+}
+
+const hodDocument: MockUserDocument & { department: string } = {
+  ...adminDocument,
+  id: '507f1f77bcf86cd799439013',
+  _id: '507f1f77bcf86cd799439013',
+  fullName: 'Department HOD',
+  email: 'hod@example.com',
+  role: 'hod',
+  department: '507f1f77bcf86cd799439014',
 }
 
 const teacherAccount: ProvisionedUserAccount = {
@@ -67,25 +90,79 @@ function authenticateAs(user: MockUserDocument) {
 describe('users routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
     vi.mocked(userService.createUser).mockReset()
     vi.mocked(userService.deleteUser).mockReset()
     vi.mocked(userService.getUser).mockReset()
     vi.mocked(userService.listUsers).mockReset()
     vi.mocked(userService.resetUserPassword).mockReset()
     vi.mocked(userService.updateUser).mockReset()
+    vi.mocked(promotionService.semesterPromotionService.getCandidates).mockReset()
+    vi.mocked(promotionService.semesterPromotionService.promote).mockReset()
   })
 
   it('lists provisioned users for admins', async () => {
     authenticateAs(adminDocument)
-    vi.mocked(userService.listUsers).mockResolvedValue([teacherAccount])
+    vi.mocked(userService.listUsers).mockResolvedValue({
+      users: [teacherAccount],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     const response = await request(app)
-      .get('/api/users')
+      .get('/api/users?role=teacher&search=sian&page=1&limit=20')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(200)
 
-    expect(userService.listUsers).toHaveBeenCalled()
-    expect(response.body).toEqual({ users: [teacherAccount] })
+    expect(userService.listUsers).toHaveBeenCalledWith(adminDocument, {
+      role: 'teacher',
+      search: 'sian',
+      page: 1,
+      limit: 20,
+    })
+    expect(response.body).toEqual({
+      users: [teacherAccount],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
+  })
+
+  it('lets HODs search users within their backend-owned department scope', async () => {
+    authenticateAs(hodDocument)
+    vi.mocked(userService.listUsers).mockResolvedValue({
+      users: [teacherAccount],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
+
+    await request(app)
+      .get('/api/users?role=teacher&departmentId=507f1f77bcf86cd799439099')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(userService.listUsers).toHaveBeenCalledWith(hodDocument, {
+      role: 'teacher',
+      departmentId: '507f1f77bcf86cd799439099',
+      page: 1,
+      limit: 20,
+    })
+  })
+
+  it('rejects invalid user-list pagination before querying users', async () => {
+    authenticateAs(adminDocument)
+
+    await request(app)
+      .get('/api/users?page=0&limit=100')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(400)
+
+    expect(userService.listUsers).not.toHaveBeenCalled()
   })
 
   it('lets admins create accounts with a temporary password', async () => {
@@ -101,6 +178,7 @@ describe('users routes', () => {
       .send({
         fullName: 'Sian Teacher',
         email: 'teacher@example.com',
+        profilePictureUrl: 'https://example.com/teacher.jpg',
         role: 'teacher',
         employeeId: 'EMP-001',
         departmentId: '507f1f77bcf86cd799439012',
@@ -111,6 +189,7 @@ describe('users routes', () => {
     expect(userService.createUser).toHaveBeenCalledWith({
       fullName: 'Sian Teacher',
       email: 'teacher@example.com',
+      profilePictureUrl: 'https://example.com/teacher.jpg',
       role: 'teacher',
       employeeId: 'EMP-001',
       departmentId: '507f1f77bcf86cd799439012',
@@ -121,6 +200,12 @@ describe('users routes', () => {
       message: 'User account created',
       user: teacherAccount,
       temporaryPassword: '@Abc1234',
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'users',
+      affectedRecord: { id: teacherAccount.id, label: teacherAccount.fullName },
     })
   })
 
@@ -193,6 +278,7 @@ describe('users routes', () => {
       .send({
         fullName: 'Sian Teacher',
         email: 'teacher@example.com',
+        profilePictureUrl: 'https://example.com/teacher-updated.jpg',
         role: 'teacher',
         employeeId: 'EMP-001',
         departmentId: '507f1f77bcf86cd799439013',
@@ -204,6 +290,7 @@ describe('users routes', () => {
     expect(userService.updateUser).toHaveBeenCalledWith('507f1f77bcf86cd799439012', {
       fullName: 'Sian Teacher',
       email: 'teacher@example.com',
+      profilePictureUrl: 'https://example.com/teacher-updated.jpg',
       role: 'teacher',
       employeeId: 'EMP-001',
       departmentId: '507f1f77bcf86cd799439013',
@@ -263,5 +350,42 @@ describe('users routes', () => {
       .expect(403)
 
     expect(userService.createUser).not.toHaveBeenCalled()
+  })
+
+  it('previews and promotes a selected section for admins', async () => {
+    authenticateAs(adminDocument)
+    const result = {
+      source: { id: 'source', name: 'A', semester: { name: 'Fall' } },
+      target: { id: 'target', name: 'A', semester: { name: 'Spring' } },
+      students: [],
+      summary: { total: 1, eligible: 1, blocked: 0, promoted: 1, excluded: 0 },
+      promoted: [{ id: 'student-1' }],
+      excluded: [],
+      blocked: [],
+    }
+    vi.mocked(promotionService.semesterPromotionService.getCandidates).mockResolvedValue(
+      result as never
+    )
+    vi.mocked(promotionService.semesterPromotionService.promote).mockResolvedValue(result as never)
+
+    await request(app)
+      .get('/api/users/promotions/candidates?sourceSectionId=source&targetSectionId=target')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    const response = await request(app)
+      .post('/api/users/promotions')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .send({ sourceSectionId: 'source', targetSectionId: 'target', excludedStudentIds: [] })
+      .expect(200)
+
+    expect(promotionService.semesterPromotionService.getCandidates).toHaveBeenCalledWith({
+      sourceSectionId: 'source',
+      targetSectionId: 'target',
+    })
+    expect(response.body.message).toBe('Semester promotion completed')
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'promoted', module: 'users' })
+    )
   })
 })

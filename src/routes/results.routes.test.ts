@@ -48,6 +48,7 @@ vi.mock('../services/grading-scale.service.js', () => ({
   getGradingScale: vi.fn(),
   updateGradingScale: vi.fn(),
 }))
+vi.mock('../services/audit-log.service.js', () => ({ recordAuditLog: vi.fn() }))
 
 type MockUser = {
   id: string
@@ -62,6 +63,7 @@ type MockUser = {
 const authService = await import('../services/auth.service.js')
 const resultService = await import('../services/result.service.js')
 const gradingScaleService = await import('../services/grading-scale.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const { app } = await import('../app.js')
 
 const user: MockUser = {
@@ -106,6 +108,12 @@ describe('result routes', () => {
       offeringId
     )
     expect(response.body.message).toBe('Result submitted for HOD approval.')
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ role: 'teacher' }),
+      action: 'submitted',
+      module: 'results',
+      affectedRecord: { id: resultId },
+    })
   })
 
   it('lets an administrator configure a complete non-overlapping grading scale', async () => {
@@ -175,6 +183,13 @@ describe('result routes', () => {
       resultId,
       { comment: 'Please verify the final assessment marks.' }
     )
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ role: 'hod' }),
+      action: 'returned',
+      module: 'results',
+      affectedRecord: { id: resultId },
+      reason: 'Please verify the final assessment marks.',
+    })
   })
 
   it('requires a meaningful reason when returning a result', async () => {

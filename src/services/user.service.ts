@@ -1,4 +1,4 @@
-import { isValidObjectId, type Types } from 'mongoose'
+import { isValidObjectId, type QueryFilter, type Types } from 'mongoose'
 import { BatchModel, type BatchDocument } from '../models/batch.model.js'
 import { DepartmentModel, type DepartmentDocument } from '../models/department.model.js'
 import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
@@ -12,7 +12,11 @@ import {
 } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
 import { notifyAccountCreated } from './notification.service.js'
-import type { CreateUserPayload, UpdateUserPayload } from '../validators/user.validator.js'
+import type {
+  CreateUserPayload,
+  UpdateUserPayload,
+  UserListQuery,
+} from '../validators/user.validator.js'
 import { hashPassword } from './auth.service.js'
 import { syncStudentEnrollments } from './course.service.js'
 
@@ -24,6 +28,7 @@ export interface ProvisionedUserAccount {
   id: string
   fullName: string
   email: string
+  profilePictureUrl?: string
   phoneNumber?: string
   role: UserRole
   registrationNumber?: string
@@ -61,6 +66,10 @@ export interface CreatedUserAccount {
 
 function optionalString(value: string | undefined) {
   return value?.trim() ? value.trim() : undefined
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 function ensureValidObjectId(value: string, label: string) {
@@ -150,6 +159,7 @@ export function serializeUserAccount(user: UserDocument): ProvisionedUserAccount
     id: user.id,
     fullName: user.fullName,
     email: user.email,
+    profilePictureUrl: user.profilePictureUrl,
     phoneNumber: user.phoneNumber,
     role: user.role,
     registrationNumber: user.registrationNumber,
@@ -328,6 +338,7 @@ function assignUserProfile(
 ) {
   user.fullName = payload.fullName.trim()
   user.email = payload.email.trim().toLowerCase()
+  user.profilePictureUrl = optionalString(payload.profilePictureUrl)
   user.phoneNumber = optionalString(payload.phoneNumber)
   user.role = payload.role
   user.isActive = payload.isActive
@@ -347,14 +358,67 @@ function assignUserProfile(
   user.designation = payload.role === 'teacher' ? optionalString(payload.designation) : undefined
 }
 
-export async function listUsers() {
-  const users = await UserModel.find()
-    .sort({ role: 1, fullName: 1 })
-    .select('-passwordHash')
-    .populate(['department', 'program', 'batch', 'semester', 'section'])
-    .exec()
+export async function listUsers(viewer: UserDocument, query: UserListQuery) {
+  const filter = buildUserListFilter(viewer, query)
+  const skip = (query.page - 1) * query.limit
+  const [users, total] = await Promise.all([
+    UserModel.find(filter)
+      .sort({ role: 1, fullName: 1 })
+      .skip(skip)
+      .limit(query.limit)
+      .select('-passwordHash')
+      .populate(['department', 'program', 'batch', 'semester', 'section'])
+      .exec(),
+    UserModel.countDocuments(filter).exec(),
+  ])
 
-  return users.map((user) => serializeUserAccount(user as unknown as UserDocument))
+  return {
+    users: users.map((user) => serializeUserAccount(user as unknown as UserDocument)),
+    page: query.page,
+    limit: query.limit,
+    total,
+    totalPages: Math.ceil(total / query.limit),
+  }
+}
+
+function buildUserListFilter(
+  viewer: UserDocument,
+  query: UserListQuery
+): QueryFilter<UserDocument> {
+  let departmentId = query.departmentId
+  if (viewer.role === 'hod') {
+    if (!viewer.department) {
+      throw new ApiError(403, 'HOD department assignment required')
+    }
+
+    departmentId = viewer.department.toString()
+  }
+
+  const filter: QueryFilter<UserDocument> = {}
+
+  if (query.role) filter.role = query.role
+  if (departmentId) filter.department = departmentId
+  if (query.programId) filter.program = query.programId
+  if (query.batchId) filter.batch = query.batchId
+  if (query.semesterId) filter.semester = query.semesterId
+  if (query.sectionId) filter.section = query.sectionId
+  if (query.isActive !== undefined) filter.isActive = query.isActive
+  if (query.designation) {
+    filter.designation = new RegExp(`^${escapeRegExp(query.designation)}$`, 'i')
+  }
+
+  if (query.search) {
+    const search = new RegExp(escapeRegExp(query.search), 'i')
+    const identityFields =
+      query.role === 'student'
+        ? ['fullName', 'email', 'registrationNumber']
+        : query.role === 'teacher' || query.role === 'hod'
+          ? ['fullName', 'email', 'employeeId']
+          : ['fullName', 'email', 'registrationNumber', 'employeeId']
+    filter.$or = identityFields.map((field) => ({ [field]: search }))
+  }
+
+  return filter
 }
 
 export async function getUser(userId: string) {

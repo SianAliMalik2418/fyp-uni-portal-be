@@ -1,4 +1,5 @@
 import { createBatch, deleteBatch, listBatches, updateBatch } from '../services/batch.service.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   batchParamsSchema,
@@ -15,6 +16,12 @@ export const listBatchesController = asyncHandler(async (_req, res) => {
 export const createBatchController = asyncHandler(async (req, res) => {
   const payload = createBatchSchema.parse(req.body)
   const batch = await createBatch(payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'created',
+    module: 'batches',
+    affectedRecord: { id: batch.id, label: batch.name },
+  })
 
   res.status(201).json({
     message: 'Batch created',
@@ -26,6 +33,12 @@ export const updateBatchController = asyncHandler(async (req, res) => {
   const { batchId } = batchParamsSchema.parse(req.params)
   const payload = updateBatchSchema.parse(req.body)
   const batch = await updateBatch(batchId, payload)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'updated',
+    module: 'batches',
+    affectedRecord: { id: batch.id, label: batch.name },
+  })
 
   res.status(200).json({
     message: 'Batch updated',
@@ -36,6 +49,12 @@ export const updateBatchController = asyncHandler(async (req, res) => {
 export const deleteBatchController = asyncHandler(async (req, res) => {
   const { batchId } = batchParamsSchema.parse(req.params)
   await deleteBatch(batchId)
+  await recordAuditLog({
+    actor: req.auth!.user,
+    action: 'deleted',
+    module: 'batches',
+    affectedRecord: { id: batchId },
+  })
 
   res.status(200).json({ message: 'Batch deleted' })
 })

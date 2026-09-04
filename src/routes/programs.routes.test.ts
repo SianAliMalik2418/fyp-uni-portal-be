@@ -18,6 +18,10 @@ vi.mock('../services/program.service.js', () => ({
   updateProgram: vi.fn(),
 }))
 
+vi.mock('../services/audit-log.service.js', () => ({
+  recordAuditLog: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -29,6 +33,7 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const programService = await import('../services/program.service.js')
 const { app } = await import('../app.js')
 
@@ -68,6 +73,7 @@ function authenticateAs(user: MockUserDocument) {
 describe('programs routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
     vi.mocked(programService.createProgram).mockReset()
     vi.mocked(programService.deleteProgram).mockReset()
     vi.mocked(programService.listPrograms).mockReset()
@@ -117,6 +123,12 @@ describe('programs routes', () => {
     expect(response.body).toEqual({
       message: 'Program created',
       program: computerScienceProgram,
+    })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'programs',
+      affectedRecord: { id: computerScienceProgram.id, label: computerScienceProgram.name },
     })
   })
 

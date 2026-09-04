@@ -20,7 +20,7 @@
 
 The proposed project is a centralized university portal designed to digitize and simplify common academic operations for students, teachers, Heads of Department (HODs), and university administrators.
 
-The portal will provide a single web-based platform through which academic information can be managed and accessed. Instead of relying on separate manual processes, spreadsheets, notices, and disconnected systems, the university portal will organize student records, course assignments, attendance, assessments, results, fee information, configurable timetables, course materials, announcements, and academic dashboards in one place.
+The portal will provide a single web-based platform through which academic information can be managed and accessed. Instead of relying on separate manual processes, spreadsheets, notices, and disconnected systems, the university portal will organize student records, course assignments, attendance, assessments, results, fee information, configurable timetables, announcements, and academic dashboards in one place.
 
 The system will be developed using the **MERN stack**, consisting of MongoDB, Express.js, React.js, and Node.js.
 
@@ -32,7 +32,7 @@ The project is designed as a practical academic management system rather than a 
 
 # 3. Problem Statement
 
-University students often need to obtain academic information from multiple sources or manually contact university staff for routine information such as attendance, marks, fee status, examination dates, course information, announcements, and study materials.
+University students often need to obtain academic information from multiple sources or manually contact university staff for routine information such as attendance, marks, fee status, examination dates, course information, and announcements.
 
 Similarly, teachers and administrators may rely on spreadsheets, manual records, paper attendance, and separate files to manage academic information.
 
@@ -79,7 +79,6 @@ The portal will include:
 - Fee information
 - Configurable timetable management
 - Examination date sheets
-- Course materials
 - Global announcements
 - In-app notifications
 - Role-specific dashboards
@@ -94,7 +93,7 @@ The main objectives of this project are:
 
 1. To develop a centralized university portal using the MERN stack.
 2. To provide students with convenient access to their academic information.
-3. To allow teachers to manage attendance, assessments, marks, and course materials.
+3. To allow teachers to manage attendance, assessments, and marks.
 4. To allow HODs to supervise courses, teacher assignments, and result approval.
 5. To allow administrators to manage users, academic structures, fee information, timetables, grading rules, and announcements.
 6. To automate grade, GPA, and attendance percentage calculations.
@@ -152,7 +151,7 @@ Students will primarily use the portal to view their academic information.
 
 A student will be able to:
 
-- Log in using their registered email address and password through Better Auth.
+- Log in using their registered email address and password.
 - View personal and academic profile information.
 - View assigned courses.
 - View assigned teacher information.
@@ -165,7 +164,6 @@ A student will be able to:
 - View fee status.
 - View the published timetable.
 - View exam date sheet.
-- View course materials.
 - View global announcements.
 - Receive in-app notifications.
 - Use the AI academic chatbot.
@@ -178,7 +176,7 @@ Teachers will manage academic records for their assigned courses.
 
 A teacher will be able to:
 
-- Log in using their registered email address and password through Better Auth.
+- Log in using their registered email address and password.
 - View teacher profile.
 - View assigned courses.
 - View enrolled students for assigned course sections.
@@ -189,7 +187,6 @@ A teacher will be able to:
 - Save marks as draft.
 - Submit complete course results to the HOD.
 - View returned result submissions and HOD comments.
-- Upload course materials.
 - View relevant published timetable slots.
 - View relevant examination date sheets.
 - Receive in-app notifications.
@@ -229,7 +226,7 @@ The administrator will be able to:
 - Create HOD accounts.
 - Activate or deactivate accounts.
 - Manage registered email addresses, temporary-password state, and account status.
-- Perform student bulk import through CSV or Excel.
+- Perform student bulk import through CSV.
 - Manage departments.
 - Manage academic programs.
 - Manage batches.
@@ -364,7 +361,7 @@ The student profile will be controlled by the administrator.
 
 ## 14.2 Bulk Student Import
 
-The administrator can upload a CSV or Excel file containing multiple students.
+The administrator can upload a CSV file containing multiple students.
 
 The system will:
 
@@ -402,15 +399,15 @@ Teachers will be able to view but not edit this information.
 
 # 16. Authentication
 
-The system will use secure user authentication through Better Auth.
+The system will use secure custom email/password session authentication.
 
-All users will log in using their registered email address and password through Better Auth's email/password provider.
+All users will log in using their registered email address and password.
 
 Public self-signup, registration-number login, employee-ID login, OTP login, magic links, passkeys, Google, GitHub, Microsoft, and other OAuth providers are not valid authentication options for this app unless the project requirements change.
 
 Registration numbers and employee IDs will remain profile/academic identifiers only. They must not be accepted as login credentials.
 
-The authenticated Better Auth session will be the source of truth for the user's identity.
+The authenticated backend session will be the source of truth for the user's identity.
 
 ---
 
@@ -422,24 +419,24 @@ When an account is created:
 2. Admins create other role accounts, including teacher, HOD, and student accounts.
 3. Each new user account is created with the default temporary password `@Abc1234`.
 4. The default temporary password is stored only as a secure hash.
-5. The user requests a password reset through the forgot-password flow.
-6. The user sets a new password using the reset-password link.
-7. Portal access is granted after the user signs in through Better Auth and the backend resolves the user's role, account status, and password-reset state.
+5. The user signs in with the temporary password.
+6. The portal requires the user to change the temporary password before normal access.
+7. Portal access is granted after the backend resolves the user's role, account status, and password-change state.
 
-Temporary passwords must not grant normal portal access. They exist only to provision the account and trigger the reset-password onboarding flow.
+Temporary passwords must not grant normal portal access. They exist only to provision the account and trigger the forced password-change onboarding flow.
 
 ---
 
 # 18. Account Recovery
 
-The portal will manage password reset through Better Auth. Administrators must not view passwords or assign custom plaintext passwords.
+The portal will manage password reset through an admin-only reset action. Administrators must not view passwords or assign custom plaintext passwords.
 
 If a user cannot access the portal:
 
-1. The user requests a forgot-password email.
-2. The user sets a new password from the reset-password link.
-3. The user contacts the administrator only if their registered email address or portal account status must be corrected.
-4. The administrator updates the registered email address, activates/deactivates the account, or re-triggers the reset-password onboarding state as needed.
+1. The user contacts the administrator.
+2. The administrator verifies the account and uses the reset-password action.
+3. The system issues the default temporary password `@Abc1234` and marks password change as required.
+4. The user signs in with the temporary password and changes it before normal access.
 
 ---
 
@@ -447,10 +444,9 @@ If a user cannot access the portal:
 
 Authentication will use:
 
-- Better Auth
-- Better Auth email/password provider
+- Custom backend email/password authentication
 - Registered email addresses
-- Forgot/reset password flow
+- Admin-only reset-password action
 - Secure HTTP-only session cookies
 - Backend session validation
 - Backend role authorization
@@ -535,7 +531,6 @@ The assigned teacher will manage:
 - Attendance
 - Assessments
 - Marks
-- Course materials
 - Result submission
 
 ---
@@ -888,78 +883,6 @@ Teachers can view examinations related to their course sections.
 
 ---
 
-# 54. Course Materials
-
-Teachers can upload course materials for assigned courses.
-
-The system will not include assignment submission.
-
----
-
-# 55. Supported Course Material Types
-
-Allowed file types will include:
-
-- PDF
-- DOCX
-- PPTX
-- XLSX
-- JPG
-- JPEG
-- PNG
-
-Teachers may also add external resource links.
-
-Executable files will not be allowed.
-
-A maximum upload size will be configured.
-
----
-
-# 56. Course Material Organization
-
-Course materials will use a simple file list.
-
-Each resource may contain:
-
-- Title
-- Description
-- File or external link
-- Upload date
-- Teacher
-- Related course
-
-Materials will normally be displayed according to upload date.
-
----
-
-# 57. Course Material Access
-
-Only students enrolled in the related course will be able to access its materials.
-
-Teachers can manage materials for courses assigned to them.
-
----
-
-# 58. File Storage
-
-Uploaded files will be stored on the local backend server.
-
-MongoDB will store metadata including:
-
-- Original filename
-- Stored filename
-- Local file path
-- MIME type
-- File size
-- Upload date
-- Uploaded by
-- Related course or module
-
-The system will generate unique filenames and validate all file uploads.
-
----
-
 # 59. Announcements
 
 The system will support global university announcements only.
@@ -996,7 +919,6 @@ Notifications may be generated for:
 
 - Result publication
 - Attendance changes
-- New course materials
 - Timetable updates
 - New announcements
 - Returned results
@@ -1027,7 +949,6 @@ The student dashboard may display:
 - Recent marks
 - GPA
 - Fee outstanding amount
-- Recent course materials
 - Recent announcements
 - Notifications
 - AI chatbot button
@@ -1047,7 +968,6 @@ The teacher dashboard may display:
 - Draft results
 - Submitted results
 - Returned results
-- Recent course materials
 
 ---
 
@@ -1121,7 +1041,7 @@ Teacher filters may include:
 
 # 68. Data Export
 
-The first version will not include CSV or Excel export functionality for academic records.
+The first version will not include Excel export functionality for academic records.
 
 Information will be viewed within the portal.
 
@@ -1242,7 +1162,6 @@ Example questions:
 - "When is my next exam?"
 - "Which teacher teaches Database Systems?"
 - "Do I have any attendance shortage?"
-- "What course materials are available for Computer Networks?"
 - "What is the university's passing percentage?"
 
 ---
@@ -1278,7 +1197,6 @@ The chatbot may retrieve the logged-in student's:
 - Timetable information
 - Examination date sheet
 - Global announcements
-- Course materials
 
 The chatbot will not access:
 
@@ -1446,7 +1364,7 @@ The API key must never be exposed in the React frontend.
 
 ## Authentication
 
-- Better Auth
+- Custom backend session authentication
 - Email/password-only sign-in
 - HTTP-only cookies
 - Backend session validation
@@ -1524,7 +1442,6 @@ The Express backend may be organized into modules such as:
 - Fees
 - Timetables
 - Exams
-- Materials
 - Announcements
 - Notifications
 - Audit Logs
@@ -1557,7 +1474,6 @@ Possible MongoDB collections include:
 - feeRecords
 - timetables
 - examSchedules
-- courseMaterials
 - announcements
 - notifications
 - auditLogs
@@ -1610,7 +1526,7 @@ Deployment platforms with temporary file systems should not be used for producti
 
 The system should include:
 
-- Better Auth authentication
+- Custom backend session authentication
 - Email/password-only sign-in
 - HTTP-only cookies
 - Authentication middleware
@@ -1760,9 +1676,9 @@ These include:
 25. AI assistant is read-only.
 26. AI knowledge is maintained by developers.
 27. No admin AI document upload system.
-28. No CSV or Excel export of academic reports.
+28. No Excel export of academic reports.
 29. Uploaded files use local server storage.
-30. Password reset is handled through Better Auth forgot/reset password emails.
+30. Password reset is handled only through the admin reset-password action.
 
 ---
 
@@ -1808,7 +1724,7 @@ Future versions may add:
 - Permanent AI chat history
 - AI document upload interface
 - Advanced reporting
-- Excel/CSV exports
+- CSV exports
 - Data visualization
 - Section-transfer workflows
 - Automated promotion rules
@@ -1819,7 +1735,7 @@ Future versions may add:
 
 ## Authentication
 
-- Email/password-only user login through Better Auth
+- Email/password-only user login through custom backend sessions
 - Role-based authorization
 - Active/inactive accounts
 - Multiple sessions
@@ -1912,13 +1828,6 @@ Future versions may add:
 - Manual exam date sheet
 - Student exam view
 - Teacher exam view
-
-## Materials
-
-- Course file upload
-- External links
-- Student download
-- Course-based access
 
 ## Announcements
 
@@ -2017,9 +1926,8 @@ A typical academic workflow will be:
 18. Students download result cards.
 19. Admin updates fee information.
 20. Admin configures timetables and creates exam date sheets.
-21. Teachers upload course materials.
-22. Admin publishes announcements.
-23. Students use the AI assistant to retrieve academic information.
+21. Admin publishes announcements.
+22. Students use the AI assistant to retrieve academic information.
 
 ---
 
@@ -2071,7 +1979,6 @@ The proposed portal is expected to provide several benefits:
 - Easier course and teacher management
 - Improved academic transparency
 - Simple attendance shortage monitoring
-- Better access to study materials
 - Easier distribution of announcements
 - Modern student self-service experience
 - Practical use of generative AI
@@ -2100,18 +2007,17 @@ The final FYP should include:
 14. Fee information module
 15. Configurable timetable module
 16. Exam date sheet module
-17. Course materials module
-18. Announcement module
-19. Notification module
-20. Audit logging
-21. AI chatbot using Gemini API
-22. Developer-managed AI knowledge base
-23. Online deployment
-24. Local demonstration setup
-25. FYP documentation
-26. Database design
-27. API documentation
-28. Test cases
+17. Announcement module
+18. Notification module
+19. Audit logging
+20. AI chatbot using Gemini API
+21. Developer-managed AI knowledge base
+22. Online deployment
+23. Local demonstration setup
+24. FYP documentation
+25. Database design
+26. API documentation
+27. Test cases
 
 ---
 
@@ -2128,7 +2034,6 @@ The project will be considered successful if:
 - Students can access published results.
 - Fee information can be viewed.
 - Published timetables work according to section.
-- Course materials can be uploaded and accessed.
 - Global announcements are displayed.
 - Notifications work correctly.
 - The AI chatbot answers supported student questions.

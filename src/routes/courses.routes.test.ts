@@ -25,6 +25,10 @@ vi.mock('../services/course.service.js', () => ({
   updateCourse: vi.fn(),
 }))
 
+vi.mock('../services/audit-log.service.js', () => ({
+  recordAuditLog: vi.fn(),
+}))
+
 type MockUserDocument = {
   id: string
   _id: string
@@ -37,6 +41,7 @@ type MockUserDocument = {
 }
 
 const authService = await import('../services/auth.service.js')
+const auditLogService = await import('../services/audit-log.service.js')
 const courseService = await import('../services/course.service.js')
 const { app } = await import('../app.js')
 
@@ -108,6 +113,7 @@ function authenticateAs(user: MockUserDocument) {
 describe('courses routes', () => {
   beforeEach(() => {
     vi.mocked(authService.resolveSession).mockReset()
+    vi.mocked(auditLogService.recordAuditLog).mockReset()
     vi.mocked(courseService.assignCoursesToSection).mockReset()
     vi.mocked(courseService.assignTeacherToOffering).mockReset()
     vi.mocked(courseService.createCourse).mockReset()
@@ -154,6 +160,12 @@ describe('courses routes', () => {
       isActive: true,
     })
     expect(response.body).toEqual({ courses: [course] })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'created',
+      module: 'courses',
+      affectedRecord: { id: course.id, label: `${course.code} - ${course.title}` },
+    })
   })
 
   it('assigns section courses and returns active offerings', async () => {
@@ -180,6 +192,12 @@ describe('courses routes', () => {
       expect.objectContaining({ role: 'admin' })
     )
     expect(response.body).toEqual({ offerings: [offering] })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'assigned',
+      module: 'courses',
+      affectedRecord: { id: offering.section.id, label: 'Section course set' },
+    })
   })
 
   it('lets admins and HODs assign a teacher to an offering', async () => {
@@ -198,6 +216,15 @@ describe('courses routes', () => {
       expect.objectContaining({ role: 'admin' })
     )
     expect(response.body).toEqual({ message: 'Course teacher saved', offering })
+    expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
+      actor: adminDocument,
+      action: 'assigned',
+      module: 'courses',
+      affectedRecord: {
+        id: offering.id,
+        label: `${offering.course.code} - ${offering.section.name}`,
+      },
+    })
   })
 
   it('lists active offerings and assignable teachers for course managers', async () => {

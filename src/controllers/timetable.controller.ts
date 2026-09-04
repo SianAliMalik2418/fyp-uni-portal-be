@@ -12,6 +12,7 @@ import {
   timetableSectionParamsSchema,
 } from '../validators/timetable.validator.js'
 import { ApiError } from '../utils/api-error.js'
+import { recordAuditLog } from '../services/audit-log.service.js'
 
 function getRequestUser(req: Request) {
   if (!req.auth) {
@@ -34,6 +35,12 @@ export const saveSectionTimetableDraftController = asyncHandler(async (req, res)
   const timetable = await saveSectionTimetableDraft(sectionId, payload, {
     userId: getRequestUser(req).id,
   })
+  await recordAuditLog({
+    actor: getRequestUser(req),
+    action: 'saved',
+    module: 'timetable',
+    affectedRecord: { id: timetable.id, label: `Section ${timetable.section.name} draft` },
+  })
 
   res.status(200).json({
     message: 'Timetable draft saved',
@@ -45,6 +52,12 @@ export const publishSectionTimetableDraftController = asyncHandler(async (req, r
   const { sectionId } = timetableSectionParamsSchema.parse(req.params)
   const timetable = await publishSectionTimetableDraft(sectionId, {
     userId: getRequestUser(req).id,
+  })
+  await recordAuditLog({
+    actor: getRequestUser(req),
+    action: 'published',
+    module: 'timetable',
+    affectedRecord: { id: timetable.id, label: `Section ${timetable.section.name} timetable` },
   })
 
   res.status(200).json({
