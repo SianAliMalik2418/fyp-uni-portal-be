@@ -1,5 +1,6 @@
 import type { UserDocument } from '../models/user.model.js'
 import type { TrustedKnowledge } from './knowledge-base.service.js'
+import { logger } from '../config/logger.js'
 import { ApiError } from '../utils/api-error.js'
 import {
   aiModelOutputSchema,
@@ -294,7 +295,8 @@ export function createAiAssistantService(dependencies: AiAssistantDependencies) 
           grounding,
           messages: [...request.conversation, { role: 'user' as const, content: request.message }],
         })
-      } catch {
+      } catch (error) {
+        logger.error({ err: error }, 'AI assistant provider request failed')
         throw new ApiError(502, 'AI assistant provider is unavailable')
       }
       const output = parseModelOutput(rawOutput)

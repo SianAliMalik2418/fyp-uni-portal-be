@@ -5,10 +5,6 @@ import type { GeminiAssistantRequest } from './ai-assistant.service.js'
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
 export const GEMINI_ASSISTANT_MODEL = 'gemini-3.6-flash'
 
-export function getGeminiModel() {
-  return genAI.getGenerativeModel({ model: GEMINI_ASSISTANT_MODEL })
-}
-
 const assistantResponseSchema: Schema = {
   type: SchemaType.OBJECT,
   properties: {
@@ -34,7 +30,7 @@ export async function generateGeminiAssistantResponse(request: GeminiAssistantRe
     systemInstruction: request.systemInstruction,
     generationConfig: {
       candidateCount: 1,
-      maxOutputTokens: 600,
+      maxOutputTokens: 2048,
       temperature: 0.1,
       responseMimeType: 'application/json',
       responseSchema: assistantResponseSchema,
