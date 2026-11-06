@@ -335,6 +335,52 @@ describe('AI assistant service', () => {
     expect(dependencies.getStudentContext).not.toHaveBeenCalled()
   })
 
+  it.each([
+    ['HI', /^Hi Sian!/],
+    ['hello there', /^Hi Sian!/],
+    ['Assalamualaikum', /^Hi Sian!/],
+    ['who are u?', /academic assistant/],
+    ['What can you do', /read-only/],
+    ['help', /read-only/],
+    ['thanks!', /welcome/i],
+  ])('answers %j directly without calling Gemini', async (message, expected) => {
+    const { dependencies } = createDependencies({})
+
+    const answer = await createAiAssistantService(dependencies).ask(
+      { id: 'student-1', role: 'student', fullName: 'Sian Malik' } as never,
+      { message, conversation: [] }
+    )
+
+    expect(answer.answer).toMatch(expected)
+    expect(answer.grounded).toBe(true)
+    expect(dependencies.generate).not.toHaveBeenCalled()
+    expect(dependencies.getStudentContext).not.toHaveBeenCalled()
+  })
+
+  it.each(['hi, what is my attendance?', 'who are my teachers?', 'help me with my cgpa'])(
+    'still sends %j to Gemini',
+    async (message) => {
+      const { dependencies } = createDependencies({
+        answer: 'ok',
+        grounded: false,
+        knowledgeKeys: [],
+        contextSections: [],
+      })
+
+      await createAiAssistantService(dependencies).ask(
+        { id: 'student-1', role: 'student' } as never,
+        { message, conversation: [] }
+      )
+
+      expect(dependencies.generate).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it('tells students what it can help with when it has no trusted answer', () => {
+    expect(AI_UNKNOWN_INFORMATION_FALLBACK).toMatch(/academic portal records/)
+    expect(AI_UNKNOWN_INFORMATION_FALLBACK).toMatch(/attendance/)
+  })
+
   it('uses a fixed fallback when Gemini reports insufficient grounding', async () => {
     const { dependencies } = createDependencies({
       answer: 'I am unsure.',
