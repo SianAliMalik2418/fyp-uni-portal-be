@@ -10,7 +10,7 @@ vi.mock('./assessment.service.js', () => ({
 }))
 
 vi.mock('./course.service.js', () => ({
-  serializeCourseOffering: vi.fn(),
+  serializeCourseOfferings: vi.fn().mockResolvedValue([]),
 }))
 
 const markSheetModel = await import('../models/mark-sheet.model.js')
@@ -95,10 +95,12 @@ describe('published student marks', () => {
         updatedAt: new Date('2026-08-12T00:00:00.000Z'),
       },
     ])
-    vi.mocked(courseService.serializeCourseOffering).mockResolvedValue({
-      id: 'offering-1',
-      course: { code: 'PF', title: 'Programming Fundamentals' },
-    } as never)
+    vi.mocked(courseService.serializeCourseOfferings).mockResolvedValue([
+      {
+        id: 'offering-1',
+        course: { code: 'PF', title: 'Programming Fundamentals' },
+      },
+    ] as never)
 
     const result = await listPublishedStudentMarks(student as never)
 

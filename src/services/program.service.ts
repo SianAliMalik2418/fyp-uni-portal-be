@@ -2,7 +2,9 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { DepartmentModel, type DepartmentDocument } from '../models/department.model.js'
 import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateProgramPayload, UpdateProgramPayload } from '../validators/program.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 export interface SerializedProgramDepartment {
   id: string
@@ -129,13 +131,22 @@ async function populateProgramDepartment(program: ProgramDocument) {
   return program
 }
 
-export async function listPrograms() {
-  const programs = await ProgramModel.find()
-    .sort({ name: 1 })
-    .populate<{ department: DepartmentDocument }>('department')
-    .exec()
+export async function listPrograms(query: PaginationQuery) {
+  const skip = paginationSkip(query)
+  const [programs, total] = await Promise.all([
+    ProgramModel.find()
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(query.limit)
+      .populate<{ department: DepartmentDocument }>('department')
+      .exec(),
+    ProgramModel.countDocuments().exec(),
+  ])
 
-  return programs.map((program) => serializeProgram(program as unknown as ProgramDocument))
+  return {
+    programs: programs.map((program) => serializeProgram(program as unknown as ProgramDocument)),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function createProgram(payload: CreateProgramPayload) {

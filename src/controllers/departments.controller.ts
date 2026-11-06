@@ -8,14 +8,16 @@ import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   createDepartmentSchema,
+  departmentListQuerySchema,
   departmentParamsSchema,
   updateDepartmentSchema,
 } from '../validators/department.validator.js'
 
-export const listDepartmentsController = asyncHandler(async (_req, res) => {
-  const departments = await listDepartments()
+export const listDepartmentsController = asyncHandler(async (req, res) => {
+  const query = departmentListQuerySchema.parse(req.query)
+  const result = await listDepartments(query)
 
-  res.status(200).json({ departments })
+  res.status(200).json(result)
 })
 
 export const createDepartmentController = asyncHandler(async (req, res) => {

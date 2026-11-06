@@ -74,15 +74,27 @@ describe('departments routes', () => {
 
   it('lists departments for admins', async () => {
     authenticateAs(adminDocument)
-    vi.mocked(departmentService.listDepartments).mockResolvedValue([computerScienceDepartment])
+    vi.mocked(departmentService.listDepartments).mockResolvedValue({
+      departments: [computerScienceDepartment],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     const response = await request(app)
       .get('/api/departments')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(200)
 
-    expect(departmentService.listDepartments).toHaveBeenCalled()
-    expect(response.body).toEqual({ departments: [computerScienceDepartment] })
+    expect(departmentService.listDepartments).toHaveBeenCalledWith({ page: 1, limit: 20 })
+    expect(response.body).toEqual({
+      departments: [computerScienceDepartment],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
   })
 
   it('lets admins create departments', async () => {

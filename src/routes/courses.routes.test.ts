@@ -130,7 +130,13 @@ describe('courses routes', () => {
   it('lets admins create and list courses', async () => {
     authenticateAs(adminDocument)
     vi.mocked(courseService.createCourse).mockResolvedValue(course)
-    vi.mocked(courseService.listCourses).mockResolvedValue([course])
+    vi.mocked(courseService.listCourses).mockResolvedValue({
+      courses: [course],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     await request(app)
       .post('/api/courses')
@@ -159,7 +165,13 @@ describe('courses routes', () => {
       semesterId: course.semester.id,
       isActive: true,
     })
-    expect(response.body).toEqual({ courses: [course] })
+    expect(response.body).toEqual({
+      courses: [course],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
     expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
       actor: adminDocument,
       action: 'created',

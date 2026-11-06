@@ -11,7 +11,7 @@ import {
   type AcademicPerformanceStudent,
 } from './academic-performance.service.js'
 import { getWeightedMarksSummary, type StudentWeightedSummary } from './assessment.service.js'
-import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
+import { serializeCourseOfferings, type SerializedCourseOffering } from './course.service.js'
 import { getGradingScale, mapPercentageToGrade } from './grading-scale.service.js'
 import {
   notifyResultApproved,
@@ -275,7 +275,7 @@ export async function submitCourseResult(teacher: UserDocument, offeringId: stri
       $push: { history: { action: 'submitted', actor: teacher._id, occurredAt: now } },
       $setOnInsert: { courseOffering: new Types.ObjectId(offeringId) },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   return serializeResult(context.offering, records, result)
@@ -373,6 +373,7 @@ export async function getPublishedStudentResults(student: UserDocument) {
   }
 
   const results = await ResultModel.find({ status: 'approved', 'records.student': student._id })
+    .select({ courseOffering: 1, approvedAt: 1, records: { $elemMatch: { student: student._id } } })
     .populate({
       path: 'courseOffering',
       populate: [
@@ -384,15 +385,21 @@ export async function getPublishedStudentResults(student: UserDocument) {
     .sort({ approvedAt: -1 })
     .exec()
 
+  const offerings = await serializeCourseOfferings(
+    results.map((result): unknown => result.courseOffering).filter(isPopulatedOffering)
+  )
+  const offeringById = new Map(offerings.map((offering) => [offering.id, offering]))
   const courses: StudentCourseResult[] = []
   for (const result of results) {
     if (!isPopulatedOffering(result.courseOffering)) continue
     const record = result.records.find((candidate) => relationId(candidate.student) === student.id)
     if (!record) continue
 
+    const offering = offeringById.get(result.courseOffering.id)
+    if (!offering) continue
     courses.push({
       id: result.id,
-      offering: await serializeCourseOffering(result.courseOffering),
+      offering,
       finalPercentage: record.finalPercentage,
       letterGrade: record.letterGrade,
       gradePoint: record.gradePoint,

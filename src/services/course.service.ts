@@ -11,6 +11,7 @@ import { SectionModel, type SectionDocument } from '../models/section.model.js'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { UserModel, type UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import { notifyCourseAssigned } from './notification.service.js'
 import type {
   CreateCoursePayload,
@@ -18,6 +19,7 @@ import type {
   TeacherAssignmentPayload,
   UpdateCoursePayload,
 } from '../validators/course.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 type SerializedRelationship = { id: string; name: string; code?: string; isActive: boolean }
 
@@ -186,17 +188,35 @@ function serializeTeacher(teacher: UserDocument) {
   }
 }
 
-function serializeAssignableTeacher(teacher: UserDocument): SerializedAssignableTeacher {
-  return serializeTeacher(teacher)
-}
-
-async function studentCountForOffering(offeringId: string) {
-  return EnrollmentModel.countDocuments({ courseOffering: offeringId, isActive: true }).exec()
-}
-
 export async function serializeCourseOffering(
   offering: CourseOfferingDocument
 ): Promise<SerializedCourseOffering> {
+  const studentCount = await EnrollmentModel.countDocuments({
+    courseOffering: offering._id,
+    isActive: true,
+  }).exec()
+  return offeringWithStudentCount(offering, studentCount)
+}
+
+export async function serializeCourseOfferings(
+  offerings: CourseOfferingDocument[]
+): Promise<SerializedCourseOffering[]> {
+  if (offerings.length === 0) return []
+  const ids = [...new Map(offerings.map((offering) => [offering.id, offering._id])).values()]
+  const counts = await EnrollmentModel.aggregate<{ _id: Types.ObjectId; count: number }>([
+    { $match: { courseOffering: { $in: ids }, isActive: true } },
+    { $group: { _id: '$courseOffering', count: { $sum: 1 } } },
+  ]).exec()
+  const countByOffering = new Map(counts.map((row) => [row._id.toString(), row.count]))
+  return offerings.map((offering) =>
+    offeringWithStudentCount(offering, countByOffering.get(offering.id) ?? 0)
+  )
+}
+
+function offeringWithStudentCount(
+  offering: CourseOfferingDocument,
+  studentCount: number
+): SerializedCourseOffering {
   if (!isPopulatedCourse(offering.course) || !isPopulatedSection(offering.section)) {
     throw new ApiError(500, 'Course offering relationships were not loaded')
   }
@@ -219,7 +239,7 @@ export async function serializeCourseOffering(
       isActive: section.isActive,
     },
     teacher: isPopulatedTeacher(offering.teacher) ? serializeTeacher(offering.teacher) : undefined,
-    studentCount: await studentCountForOffering(offering.id),
+    studentCount,
     isActive: offering.isActive,
     createdAt: offering.createdAt,
     updatedAt: offering.updatedAt,
@@ -404,17 +424,26 @@ export async function syncStudentEnrollments(userId: string) {
   )
 }
 
-export async function listCourses(user?: UserDocument) {
-  const query =
+export async function listCourses(user: UserDocument | undefined, query: PaginationQuery) {
+  const filter =
     user?.role === 'hod' && user.department ? { department: user.department.toString() } : {}
-  const courses = await CourseModel.find(query)
-    .sort({ code: 1 })
-    .populate<{ department: DepartmentDocument }>('department')
-    .populate<{ program: ProgramDocument }>('program')
-    .populate<{ semester: SemesterDocument }>('semester')
-    .exec()
+  const skip = paginationSkip(query)
+  const [courses, total] = await Promise.all([
+    CourseModel.find(filter)
+      .sort({ code: 1 })
+      .skip(skip)
+      .limit(query.limit)
+      .populate<{ department: DepartmentDocument }>('department')
+      .populate<{ program: ProgramDocument }>('program')
+      .populate<{ semester: SemesterDocument }>('semester')
+      .exec(),
+    CourseModel.countDocuments(filter).exec(),
+  ])
 
-  return courses.map((course) => serializeCourse(course as unknown as CourseDocument))
+  return {
+    courses: courses.map((course) => serializeCourse(course as unknown as CourseDocument)),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function listAssignableTeachers(user: UserDocument) {
@@ -433,7 +462,7 @@ export async function listAssignableTeachers(user: UserDocument) {
     .populate<{ department: DepartmentDocument }>('department')
     .exec()
 
-  return teachers.map((teacher) => serializeAssignableTeacher(teacher as unknown as UserDocument))
+  return teachers.map((teacher) => serializeTeacher(teacher as unknown as UserDocument))
 }
 
 export async function createCourse(payload: CreateCoursePayload) {
@@ -604,11 +633,7 @@ export async function getSectionCourseOfferings(sectionId: string, user?: UserDo
     .populate({ path: 'teacher', populate: ['department'] })
     .exec()
 
-  const serializedOfferings = await Promise.all(
-    offerings.map((offering) =>
-      serializeCourseOffering(offering as unknown as CourseOfferingDocument)
-    )
-  )
+  const serializedOfferings = await serializeCourseOfferings(offerings)
 
   if (user?.role === 'hod' && user.department) {
     return serializedOfferings.filter(
@@ -633,11 +658,7 @@ export async function listCourseOfferings(user: UserDocument) {
     .populate({ path: 'teacher', populate: ['department'] })
     .exec()
 
-  return Promise.all(
-    offerings.map((offering) =>
-      serializeCourseOffering(offering as unknown as CourseOfferingDocument)
-    )
-  )
+  return serializeCourseOfferings(offerings)
 }
 
 async function assertCanManageOfferingTeacher(
@@ -738,7 +759,7 @@ export async function listStudentCourses(student: UserDocument) {
     .map((enrollment) => enrollment.courseOffering)
     .filter(Boolean) as unknown as CourseOfferingDocument[]
 
-  return Promise.all(offerings.map((offering) => serializeCourseOffering(offering)))
+  return serializeCourseOfferings(offerings)
 }
 
 export async function listTeacherCourseOfferings(teacher: UserDocument) {
@@ -753,9 +774,5 @@ export async function listTeacherCourseOfferings(teacher: UserDocument) {
     .populate({ path: 'teacher', populate: ['department'] })
     .exec()
 
-  return Promise.all(
-    offerings.map((offering) =>
-      serializeCourseOffering(offering as unknown as CourseOfferingDocument)
-    )
-  )
+  return serializeCourseOfferings(offerings)
 }

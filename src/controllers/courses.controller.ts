@@ -14,6 +14,7 @@ import {
 import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
+  courseListQuerySchema,
   courseOfferingParamsSchema,
   courseParamsSchema,
   createCourseSchema,
@@ -24,9 +25,10 @@ import {
 } from '../validators/course.validator.js'
 
 export const listCoursesController = asyncHandler(async (req, res) => {
-  const courses = await listCourses(req.auth!.user)
+  const query = courseListQuerySchema.parse(req.query)
+  const result = await listCourses(req.auth!.user, query)
 
-  res.status(200).json({ courses })
+  res.status(200).json(result)
 })
 
 export const listAssignableTeachersController = asyncHandler(async (req, res) => {

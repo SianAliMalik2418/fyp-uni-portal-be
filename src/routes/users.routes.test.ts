@@ -131,6 +131,28 @@ describe('users routes', () => {
     })
   })
 
+  it('accepts a comma-separated role filter and queries multiple roles at once', async () => {
+    authenticateAs(adminDocument)
+    vi.mocked(userService.listUsers).mockResolvedValue({
+      users: [teacherAccount],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
+
+    await request(app)
+      .get('/api/users?role=teacher,hod')
+      .set('Cookie', ['portal_session=raw-session-token'])
+      .expect(200)
+
+    expect(userService.listUsers).toHaveBeenCalledWith(adminDocument, {
+      role: ['teacher', 'hod'],
+      page: 1,
+      limit: 20,
+    })
+  })
+
   it('lets HODs search users within their backend-owned department scope', async () => {
     authenticateAs(hodDocument)
     vi.mocked(userService.listUsers).mockResolvedValue({

@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { paginationQuerySchema } from './pagination.validator.js'
+
+export const programListQuerySchema = paginationQuerySchema
 
 export const programParamsSchema = z.object({
   programId: z.string().trim().min(1, 'Program ID is required'),

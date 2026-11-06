@@ -211,7 +211,7 @@ export async function updateAssessmentStructure(payload: AssessmentConfiguration
       $set: { categories: payload.categories },
       $setOnInsert: { key: ASSESSMENT_CONFIGURATION_KEY },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   return serializeAssessmentStructure(configuration!.categories, configuration!.updatedAt)
@@ -375,7 +375,7 @@ export async function saveMarkSheetDraft(
       },
       $setOnInsert: { assessment: assessment._id },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   return getMarkSheet(teacher, assessmentId)
@@ -395,7 +395,14 @@ export async function getWeightedMarksSummary(user: UserDocument, offeringId: st
     assessment: { $in: assessments.map((assessment) => assessment._id) },
   }).exec()
   const sheetByAssessment = new Map(
-    sheets.map((sheet) => [sheet.assessment.toString(), sheet.records])
+    sheets.map((sheet) => {
+      const records = new Map<string, (typeof sheet.records)[number]>()
+      for (const record of sheet.records) {
+        const studentId = relationId(record.student)
+        if (studentId && !records.has(studentId)) records.set(studentId, record)
+      }
+      return [sheet.assessment.toString(), records] as const
+    })
   )
 
   return students.map((student): StudentWeightedSummary => {
@@ -407,9 +414,7 @@ export async function getWeightedMarksSummary(user: UserDocument, offeringId: st
       for (const assessment of assessments) {
         if (assessment.category !== definition.id) continue
 
-        const record = sheetByAssessment
-          .get(assessment.id)
-          ?.find((candidate) => relationId(candidate.student) === student.id)
+        const record = sheetByAssessment.get(assessment.id)?.get(student.id)
 
         if (!record || (record.obtainedMarks === undefined && record.status === undefined)) {
           missingAssessments += 1

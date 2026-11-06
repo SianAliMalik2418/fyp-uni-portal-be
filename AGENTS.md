@@ -74,9 +74,11 @@ Use the smallest relevant command while iterating and complete the loop before h
 
 ```bash
 bun run build
+bun run typecheck:tests
 bun run lint
 bun run format:check
 bun run test
+bun run test:integration
 ```
 
 - Start meaningful API/business-rule changes with a failing test when a unit, service, or route test can express the behavior.
@@ -90,6 +92,8 @@ bun run test
 - Always use the `simplify` skill after the implementation and automated checks are green, before handoff.
 - Check from skills installed globally in system and see what could be used in your speciifc scenario and use it
 
+For setup, database isolation, and complete verification, see [docs/VERIFICATION.md](docs/VERIFICATION.md).
+
 ## Backend Failure Log
 
 - Do not put persistence or relationship workflows in controllers; keep them in services.
@@ -97,3 +101,5 @@ bun run test
 - Do not return a new error envelope casually; clients currently consume the established `message`-based shapes.
 - Do not add an unbounded collection read to a new or changed list endpoint.
 - Do not log session cookies, raw tokens, passwords, secrets, or full sensitive academic payloads.
+
+- Put MongoDB-backed tests in `*.integration.test.ts`, use a unique disposable database per run, and run `bun run test:integration` before handoff.

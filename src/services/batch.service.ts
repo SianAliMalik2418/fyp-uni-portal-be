@@ -2,7 +2,9 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { BatchModel, type BatchDocument } from '../models/batch.model.js'
 import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateBatchPayload, UpdateBatchPayload } from '../validators/batch.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 export interface SerializedBatchProgram {
   id: string
@@ -117,13 +119,22 @@ async function populateBatchProgram(batch: BatchDocument) {
   return batch
 }
 
-export async function listBatches() {
-  const batches = await BatchModel.find()
-    .sort({ startingYear: -1, name: 1 })
-    .populate<{ program: ProgramDocument }>('program')
-    .exec()
+export async function listBatches(query: PaginationQuery) {
+  const skip = paginationSkip(query)
+  const [batches, total] = await Promise.all([
+    BatchModel.find()
+      .sort({ startingYear: -1, name: 1 })
+      .skip(skip)
+      .limit(query.limit)
+      .populate<{ program: ProgramDocument }>('program')
+      .exec(),
+    BatchModel.countDocuments().exec(),
+  ])
 
-  return batches.map((batch) => serializeBatch(batch as unknown as BatchDocument))
+  return {
+    batches: batches.map((batch) => serializeBatch(batch as unknown as BatchDocument)),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function createBatch(payload: CreateBatchPayload) {

@@ -26,6 +26,7 @@ vi.mock('../services/semester.service.js', () => ({
   createSemester: vi.fn(),
   deleteSemester: vi.fn(),
   listSemesters: vi.fn(),
+  listSemestersPage: vi.fn(),
   updateSemester: vi.fn(),
 }))
 
@@ -33,6 +34,7 @@ vi.mock('../services/section.service.js', () => ({
   createSection: vi.fn(),
   deleteSection: vi.fn(),
   listSections: vi.fn(),
+  listSectionsPage: vi.fn(),
   updateSection: vi.fn(),
 }))
 
@@ -129,14 +131,22 @@ describe('academic structure routes', () => {
     vi.mocked(semesterService.closeSemester).mockReset()
     vi.mocked(semesterService.createSemester).mockReset()
     vi.mocked(semesterService.listSemesters).mockReset()
+    vi.mocked(semesterService.listSemestersPage).mockReset()
     vi.mocked(sectionService.createSection).mockReset()
     vi.mocked(sectionService.listSections).mockReset()
+    vi.mocked(sectionService.listSectionsPage).mockReset()
   })
 
   it('lets admins create and list batches', async () => {
     authenticateAs(adminDocument)
     vi.mocked(batchService.createBatch).mockResolvedValue(batch)
-    vi.mocked(batchService.listBatches).mockResolvedValue([batch])
+    vi.mocked(batchService.listBatches).mockResolvedValue({
+      batches: [batch],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     await request(app)
       .post('/api/batches')
@@ -162,7 +172,7 @@ describe('academic structure routes', () => {
       expectedGraduationYear: 2030,
       isActive: true,
     })
-    expect(response.body).toEqual({ batches: [batch] })
+    expect(response.body).toEqual({ batches: [batch], page: 1, limit: 20, total: 1, totalPages: 1 })
     expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
       actor: adminDocument,
       action: 'created',
@@ -221,7 +231,13 @@ describe('academic structure routes', () => {
   it('lets admins create and list sections', async () => {
     authenticateAs(adminDocument)
     vi.mocked(sectionService.createSection).mockResolvedValue(section)
-    vi.mocked(sectionService.listSections).mockResolvedValue([section])
+    vi.mocked(sectionService.listSectionsPage).mockResolvedValue({
+      sections: [section],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     await request(app)
       .post('/api/sections')
@@ -247,7 +263,13 @@ describe('academic structure routes', () => {
       semesterId: semester.id,
       isActive: true,
     })
-    expect(response.body).toEqual({ sections: [section] })
+    expect(response.body).toEqual({
+      sections: [section],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
     expect(auditLogService.recordAuditLog).toHaveBeenCalledWith({
       actor: adminDocument,
       action: 'created',

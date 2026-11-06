@@ -3,7 +3,7 @@ import { MarkSheetModel, type MarkStatus } from '../models/mark-sheet.model.js'
 import type { UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
 import { getAssessmentStructure } from './assessment.service.js'
-import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
+import { serializeCourseOfferings, type SerializedCourseOffering } from './course.service.js'
 
 export type PublishedStudentMark = {
   assessment: {
@@ -37,7 +37,7 @@ function isPopulatedAssessment(value: unknown): value is AssessmentDocument {
 
 function isPopulatedOffering(
   value: unknown
-): value is Parameters<typeof serializeCourseOffering>[0] {
+): value is Parameters<typeof serializeCourseOfferings>[0][number] {
   return Boolean(value && typeof value === 'object' && 'course' in value && 'section' in value)
 }
 
@@ -84,38 +84,44 @@ export async function listPublishedStudentMarks(
       .exec(),
     getAssessmentStructure(),
   ])
-  const marks = await Promise.all(
-    sheets.map(async (sheet): Promise<PublishedStudentMark | null> => {
-      if (!isPopulatedAssessment(sheet.assessment) || !isPopulatedOffering(sheet.courseOffering)) {
-        return null
-      }
-
-      const record = sheet.records.find((entry) => studentId(entry.student) === student.id)
-
-      if (!record) {
-        return null
-      }
-
-      return {
-        assessment: {
-          id: sheet.assessment.id,
-          name: sheet.assessment.name,
-          category: sheet.assessment.category,
-          maximumMarks: sheet.assessment.maximumMarks,
-        },
-        offering: await serializeCourseOffering(sheet.courseOffering),
-        obtainedMarks: record.obtainedMarks,
-        status: record.status,
-        percentage:
-          record.obtainedMarks === undefined
-            ? record.status === 'absent'
-              ? 0
-              : undefined
-            : round((record.obtainedMarks / sheet.assessment.maximumMarks) * 100),
-        publishedAt: sheet.updatedAt,
-      }
-    })
+  const offerings = await serializeCourseOfferings(
+    sheets
+      .filter((sheet) => isPopulatedAssessment(sheet.assessment))
+      .map((sheet): unknown => sheet.courseOffering)
+      .filter(isPopulatedOffering)
   )
+  const offeringById = new Map(offerings.map((offering) => [offering.id, offering]))
+  const marks = sheets.map((sheet): PublishedStudentMark | null => {
+    if (!isPopulatedAssessment(sheet.assessment) || !isPopulatedOffering(sheet.courseOffering)) {
+      return null
+    }
+
+    const record = sheet.records.find((entry) => studentId(entry.student) === student.id)
+
+    const offering = offeringById.get(sheet.courseOffering.id)
+    if (!record || !offering) {
+      return null
+    }
+
+    return {
+      assessment: {
+        id: sheet.assessment.id,
+        name: sheet.assessment.name,
+        category: sheet.assessment.category,
+        maximumMarks: sheet.assessment.maximumMarks,
+      },
+      offering,
+      obtainedMarks: record.obtainedMarks,
+      status: record.status,
+      percentage:
+        record.obtainedMarks === undefined
+          ? record.status === 'absent'
+            ? 0
+            : undefined
+          : round((record.obtainedMarks / sheet.assessment.maximumMarks) * 100),
+      publishedAt: sheet.updatedAt,
+    }
+  })
   const publishedMarks = marks.filter((mark): mark is PublishedStudentMark => Boolean(mark))
   const scoredMarks = publishedMarks.filter((mark) => mark.percentage !== undefined)
   const courseIds = new Set(publishedMarks.map((mark) => mark.offering.id))

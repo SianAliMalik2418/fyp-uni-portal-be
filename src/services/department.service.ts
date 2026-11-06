@@ -1,10 +1,12 @@
 import { isValidObjectId } from 'mongoose'
 import { DepartmentModel, type DepartmentDocument } from '../models/department.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type {
   CreateDepartmentPayload,
   UpdateDepartmentPayload,
 } from '../validators/department.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 export interface SerializedDepartment {
   id: string
@@ -71,10 +73,17 @@ async function assertDepartmentIsUnique(
   throw new ApiError(409, 'A department with this name already exists')
 }
 
-export async function listDepartments() {
-  const departments = await DepartmentModel.find().sort({ name: 1 }).exec()
+export async function listDepartments(query: PaginationQuery) {
+  const skip = paginationSkip(query)
+  const [departments, total] = await Promise.all([
+    DepartmentModel.find().sort({ name: 1 }).skip(skip).limit(query.limit).exec(),
+    DepartmentModel.countDocuments().exec(),
+  ])
 
-  return departments.map(serializeDepartment)
+  return {
+    departments: departments.map(serializeDepartment),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function createDepartment(payload: CreateDepartmentPayload) {

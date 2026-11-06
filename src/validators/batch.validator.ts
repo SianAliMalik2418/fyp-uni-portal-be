@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { paginationQuerySchema } from './pagination.validator.js'
+
+export const batchListQuerySchema = paginationQuerySchema
 
 export const batchParamsSchema = z.object({
   batchId: z.string().trim().min(1, 'Batch ID is required'),

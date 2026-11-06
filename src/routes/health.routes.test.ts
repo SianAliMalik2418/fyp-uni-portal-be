@@ -15,6 +15,7 @@ describe('GET /api/health', () => {
       status: 'ok',
       service: 'fyp-uni-portal-be',
     })
-    expect(new Date(response.body.timestamp)).toBeInstanceOf(Date)
+    expect(response.body.timestamp).toEqual(expect.any(String))
+    expect(new Date(response.body.timestamp).toISOString()).toBe(response.body.timestamp)
   })
 })

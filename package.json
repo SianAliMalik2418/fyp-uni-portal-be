@@ -9,13 +9,17 @@
     "start": "node dist/server.js",
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:knowledge": "tsx src/scripts/seed-knowledge.ts",
+    "seed:demo": "tsx src/scripts/seed-demo.ts",
     "seed:e2e": "tsx src/scripts/seed-e2e.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
+    "test:integration": "vitest run -c vitest.integration.config.ts",
+    "verify": "bun run build && bun run typecheck:tests && bun run lint && bun run format:check && bun run test && bun run test:integration"
   },
   "keywords": [],
   "author": "",

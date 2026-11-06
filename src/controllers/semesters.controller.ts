@@ -3,21 +3,23 @@ import {
   closeSemester,
   createSemester,
   deleteSemester,
-  listSemesters,
+  listSemestersPage,
   updateSemester,
 } from '../services/semester.service.js'
 import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   createSemesterSchema,
+  semesterListQuerySchema,
   semesterParamsSchema,
   updateSemesterSchema,
 } from '../validators/semester.validator.js'
 
-export const listSemestersController = asyncHandler(async (_req, res) => {
-  const semesters = await listSemesters()
+export const listSemestersController = asyncHandler(async (req, res) => {
+  const query = semesterListQuerySchema.parse(req.query)
+  const result = await listSemestersPage(query)
 
-  res.status(200).json({ semesters })
+  res.status(200).json(result)
 })
 
 export const createSemesterController = asyncHandler(async (req, res) => {

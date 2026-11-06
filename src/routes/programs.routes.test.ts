@@ -82,15 +82,27 @@ describe('programs routes', () => {
 
   it('lists programs for admins', async () => {
     authenticateAs(adminDocument)
-    vi.mocked(programService.listPrograms).mockResolvedValue([computerScienceProgram])
+    vi.mocked(programService.listPrograms).mockResolvedValue({
+      programs: [computerScienceProgram],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
 
     const response = await request(app)
       .get('/api/programs')
       .set('Cookie', ['portal_session=raw-session-token'])
       .expect(200)
 
-    expect(programService.listPrograms).toHaveBeenCalled()
-    expect(response.body).toEqual({ programs: [computerScienceProgram] })
+    expect(programService.listPrograms).toHaveBeenCalledWith({ page: 1, limit: 20 })
+    expect(response.body).toEqual({
+      programs: [computerScienceProgram],
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    })
   })
 
   it('lets admins create programs', async () => {

@@ -4,7 +4,9 @@ import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { SectionModel, type SectionDocument } from '../models/section.model.js'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateSectionPayload, UpdateSectionPayload } from '../validators/section.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 export interface SerializedSection {
   id: string
@@ -167,6 +169,26 @@ export async function listSections() {
     .exec()
 
   return sections.map((section) => serializeSection(section as unknown as SectionDocument))
+}
+
+export async function listSectionsPage(query: PaginationQuery) {
+  const skip = paginationSkip(query)
+  const [sections, total] = await Promise.all([
+    SectionModel.find()
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(query.limit)
+      .populate<{ program: ProgramDocument }>('program')
+      .populate<{ batch: BatchDocument }>('batch')
+      .populate<{ semester: SemesterDocument }>('semester')
+      .exec(),
+    SectionModel.countDocuments().exec(),
+  ])
+
+  return {
+    sections: sections.map((section) => serializeSection(section as unknown as SectionDocument)),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function createSection(payload: CreateSectionPayload) {

@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { paginationQuerySchema } from './pagination.validator.js'
+
+export const semesterListQuerySchema = paginationQuerySchema
 
 export const semesterParamsSchema = z.object({
   semesterId: z.string().trim().min(1, 'Semester ID is required'),

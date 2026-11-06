@@ -1,21 +1,23 @@
 import {
   createSection,
   deleteSection,
-  listSections,
+  listSectionsPage,
   updateSection,
 } from '../services/section.service.js'
 import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   createSectionSchema,
+  sectionListQuerySchema,
   sectionParamsSchema,
   updateSectionSchema,
 } from '../validators/section.validator.js'
 
-export const listSectionsController = asyncHandler(async (_req, res) => {
-  const sections = await listSections()
+export const listSectionsController = asyncHandler(async (req, res) => {
+  const query = sectionListQuerySchema.parse(req.query)
+  const result = await listSectionsPage(query)
 
-  res.status(200).json({ sections })
+  res.status(200).json(result)
 })
 
 export const createSectionController = asyncHandler(async (req, res) => {

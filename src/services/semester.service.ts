@@ -1,10 +1,12 @@
 import { isValidObjectId } from 'mongoose'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type {
   CreateSemesterPayload,
   UpdateSemesterPayload,
 } from '../validators/semester.validator.js'
+import type { PaginationQuery } from '../validators/pagination.validator.js'
 
 export interface SerializedSemester {
   id: string
@@ -84,6 +86,19 @@ export async function listSemesters() {
   const semesters = await SemesterModel.find().sort({ academicYear: -1, name: 1 }).exec()
 
   return semesters.map(serializeSemester)
+}
+
+export async function listSemestersPage(query: PaginationQuery) {
+  const skip = paginationSkip(query)
+  const [semesters, total] = await Promise.all([
+    SemesterModel.find().sort({ academicYear: -1, name: 1 }).skip(skip).limit(query.limit).exec(),
+    SemesterModel.countDocuments().exec(),
+  ])
+
+  return {
+    semesters: semesters.map(serializeSemester),
+    ...paginationMeta(query, total),
+  }
 }
 
 export async function createSemester(payload: CreateSemesterPayload) {

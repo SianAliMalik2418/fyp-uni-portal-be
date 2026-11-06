@@ -91,9 +91,21 @@ const queryBooleanSchema = z.preprocess((value) => {
   return value
 }, z.boolean())
 
+const userListRoleSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== 'string') return value
+    const roles = value
+      .split(',')
+      .map((role) => role.trim())
+      .filter(Boolean)
+    return roles.length > 1 ? roles : roles[0]
+  },
+  z.union([z.enum(userRoles), z.array(z.enum(userRoles)).min(1)]).optional()
+)
+
 export const userListQuerySchema = z.object({
   search: z.string().trim().min(1).max(100).optional(),
-  role: z.enum(userRoles).optional(),
+  role: userListRoleSchema,
   departmentId: z.string().trim().min(1).optional(),
   programId: z.string().trim().min(1).optional(),
   batchId: z.string().trim().min(1).optional(),

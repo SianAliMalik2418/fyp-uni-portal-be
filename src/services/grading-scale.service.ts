@@ -42,7 +42,7 @@ export async function updateGradingScale(payload: GradingScalePayload): Promise<
       $set: { ranges: payload.ranges },
       $setOnInsert: { key: GRADING_CONFIGURATION_KEY },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   return { ranges: configuration!.ranges, updatedAt: configuration!.updatedAt }

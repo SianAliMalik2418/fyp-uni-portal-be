@@ -396,7 +396,11 @@ function buildUserListFilter(
 
   const filter: QueryFilter<UserDocument> = {}
 
-  if (query.role) filter.role = query.role
+  if (Array.isArray(query.role)) {
+    filter.role = { $in: query.role }
+  } else if (query.role) {
+    filter.role = query.role
+  }
   if (departmentId) filter.department = departmentId
   if (query.programId) filter.program = query.programId
   if (query.batchId) filter.batch = query.batchId

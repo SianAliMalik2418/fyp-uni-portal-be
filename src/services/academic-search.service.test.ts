@@ -11,7 +11,7 @@ vi.mock('../models/course-offering.model.js', () => ({
   CourseOfferingModel: { find: vi.fn() },
 }))
 vi.mock('../models/enrollment.model.js', () => ({ EnrollmentModel: { find: vi.fn() } }))
-vi.mock('./course.service.js', () => ({ serializeCourseOffering: vi.fn() }))
+vi.mock('./course.service.js', () => ({ serializeCourseOfferings: vi.fn().mockResolvedValue([]) }))
 
 const courseModel = await import('../models/course.model.js')
 const sectionModel = await import('../models/section.model.js')
@@ -45,9 +45,11 @@ describe('academic search', () => {
       exec,
     }
     vi.mocked(offeringModel.CourseOfferingModel.find).mockReturnValue(query as never)
-    vi.mocked(courseService.serializeCourseOffering).mockResolvedValue({
-      id: 'offering-1',
-    } as never)
+    vi.mocked(courseService.serializeCourseOfferings).mockResolvedValue([
+      {
+        id: 'offering-1',
+      },
+    ] as never)
 
     const offerings = await listAcademicPerformanceOfferings(
       { role: 'hod', department: 'department-1' } as never,

@@ -8,14 +8,16 @@ import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
   createProgramSchema,
+  programListQuerySchema,
   programParamsSchema,
   updateProgramSchema,
 } from '../validators/program.validator.js'
 
-export const listProgramsController = asyncHandler(async (_req, res) => {
-  const programs = await listPrograms()
+export const listProgramsController = asyncHandler(async (req, res) => {
+  const query = programListQuerySchema.parse(req.query)
+  const result = await listPrograms(query)
 
-  res.status(200).json({ programs })
+  res.status(200).json(result)
 })
 
 export const createProgramController = asyncHandler(async (req, res) => {

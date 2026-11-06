@@ -177,7 +177,7 @@ export async function markNotificationRead(user: UserDocument, notificationId: s
   const notification = await NotificationModel.findOneAndUpdate(
     { _id: notificationId, recipient: user._id },
     { $set: { readAt: new Date() } },
-    { new: true }
+    { returnDocument: 'after' }
   ).exec()
 
   if (!notification) throw new ApiError(404, 'Notification not found')

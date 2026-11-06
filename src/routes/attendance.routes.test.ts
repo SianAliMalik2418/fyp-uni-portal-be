@@ -265,11 +265,13 @@ describe('attendance routes', () => {
   })
 
   it('returns low-attendance students for HOD review', async () => {
+    const record = attendanceSession.records[0]
+    if (!record) throw new Error('Attendance fixture requires a student record')
     authenticateAs({ ...teacherDocument, role: 'hod' })
     vi.mocked(academicPerformanceService.listLowAttendanceStudents).mockResolvedValue({
       shortages: [
         {
-          student: attendanceSession.records[0].student,
+          student: record.student,
           offering,
           totalClasses: 4,
           present: 2,

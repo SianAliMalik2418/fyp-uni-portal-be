@@ -61,8 +61,6 @@ function createAcademicPerformanceController(module: AcademicPerformanceModule):
 }
 
 export const getAttendancePlaceholder = createAcademicPerformanceController('attendance')
-export const getAssessmentsPlaceholder = createAcademicPerformanceController('assessments')
-export const getMarksPlaceholder = createAcademicPerformanceController('marks')
 export const getResultsPlaceholder = createAcademicPerformanceController('results')
 
 export const getCourseResultController = asyncHandler(async (req, res) => {

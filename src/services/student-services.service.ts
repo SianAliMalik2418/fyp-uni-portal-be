@@ -7,14 +7,6 @@ import { listSemesters, type SerializedSemester } from './semester.service.js'
 export type StudentServiceModule =
   'fees' | 'timetable' | 'exams' | 'announcements' | 'notifications' | 'ai-assistant'
 
-export type StudentServicePlaceholder = {
-  module: StudentServiceModule
-  items: []
-  empty: true
-  message: string
-  allowedRoles: UserRole[]
-}
-
 export type StudentServiceContext = {
   currentSemester: SerializedSemester | null
   availableSections: SerializedSection[]
@@ -54,56 +46,17 @@ const unresolvedScope: StudentServiceStructureScope = {
   canReferenceSection: false,
 }
 
-const placeholders: Record<StudentServiceModule, Omit<StudentServicePlaceholder, 'module'>> = {
-  fees: {
-    items: [],
-    empty: true,
-    message: 'No fee records available yet.',
-    allowedRoles: ['student', 'admin'],
-  },
-  timetable: {
-    items: [],
-    empty: true,
-    message: 'No timetable entries available yet.',
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  exams: {
-    items: [],
-    empty: true,
-    message: 'No exam date sheet available yet.',
-    allowedRoles: ['student', 'teacher', 'admin'],
-  },
-  announcements: {
-    items: [],
-    empty: true,
-    message: 'No announcements available yet.',
-    allowedRoles: ['student', 'teacher', 'hod', 'admin'],
-  },
-  notifications: {
-    items: [],
-    empty: true,
-    message: 'No notifications available yet.',
-    allowedRoles: ['student', 'teacher', 'hod', 'admin'],
-  },
-  'ai-assistant': {
-    items: [],
-    empty: true,
-    message: 'The AI assistant boundary is ready, but chat responses are not enabled yet.',
-    allowedRoles: ['student'],
-  },
-}
-
-export function getStudentServicePlaceholder(
-  module: StudentServiceModule
-): StudentServicePlaceholder {
-  return {
-    module,
-    ...placeholders[module],
-  }
+const allowedRoles: Record<StudentServiceModule, UserRole[]> = {
+  fees: ['student', 'admin'],
+  timetable: ['student', 'teacher', 'admin'],
+  exams: ['student', 'teacher', 'admin'],
+  announcements: ['student', 'teacher', 'hod', 'admin'],
+  notifications: ['student', 'teacher', 'hod', 'admin'],
+  'ai-assistant': ['student'],
 }
 
 export function getStudentServiceAllowedRoles(module: StudentServiceModule) {
-  return placeholders[module].allowedRoles
+  return allowedRoles[module]
 }
 
 function serializeRelation(value: unknown): StudentServiceRelation | null {

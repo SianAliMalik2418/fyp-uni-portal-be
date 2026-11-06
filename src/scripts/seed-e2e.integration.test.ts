@@ -1,5 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import mongoose from 'mongoose'
+import { MongoClient } from 'mongodb'
 import { afterAll, describe, expect, it } from 'vitest'
 import { AnnouncementModel } from '../models/announcement.model.js'
 import { AssessmentConfigurationModel } from '../models/assessment-configuration.model.js'
@@ -26,19 +28,23 @@ import { UserModel } from '../models/user.model.js'
 import { searchTrustedKnowledge } from '../services/knowledge-base.service.js'
 import { listPublishedStudentMarks } from '../services/student-marks.service.js'
 
-const disposableDatabaseUri = 'mongodb://127.0.0.1:27017/fyp_uni_portal_e2e'
+const disposableDatabaseUri = `mongodb://127.0.0.1:27017/fyp_uni_portal_e2e_${randomUUID().replaceAll('-', '')}`
 
 afterAll(async () => {
   await mongoose.disconnect()
+  runSeed(disposableDatabaseUri, ['--cleanup'])
 })
 
 describe('e2e demo seed', () => {
-  it('refuses to run against a database outside the explicit e2e target', () => {
-    const result = runSeed('mongodb://127.0.0.1:1/university_portal')
+  it.each(['university_portal', 'fyp_uni_portal_e2e_production', 'fyp_uni_portal_e2e_abc'])(
+    'refuses unsafe database %s',
+    (database) => {
+      const result = runSeed(`mongodb://127.0.0.1:1/${database}`)
 
-    expect(result.status).not.toBe(0)
-    expect(result.stderr).toContain('Refusing to seed non-e2e database')
-  })
+      expect(result.status).not.toBe(0)
+      expect(result.stderr).toContain('Refusing to seed non-e2e database')
+    }
+  )
 
   it('creates the complete deterministic Phase 21 demonstration state', async () => {
     const result = runSeed(disposableDatabaseUri)
@@ -50,11 +56,16 @@ describe('e2e demo seed', () => {
     await expectAcademicPerformanceExamples()
     await expectStudentServiceExamples()
     await expectConfigurationKnowledge()
+
+    await mongoose.disconnect()
+    const cleanup = runSeed(disposableDatabaseUri, ['--cleanup'])
+    expect(cleanup.status).toBe(0)
+    await expectDatabaseDropped(disposableDatabaseUri)
   }, 30_000)
 })
 
-function runSeed(databaseUri: string) {
-  return spawnSync('bunx', ['tsx', 'src/scripts/seed-e2e.ts'], {
+function runSeed(databaseUri: string, args: string[] = []) {
+  return spawnSync('bunx', ['tsx', 'src/scripts/seed-e2e.ts', ...args], {
     cwd: process.cwd(),
     encoding: 'utf8',
     env: {
@@ -65,6 +76,15 @@ function runSeed(databaseUri: string) {
       LOG_LEVEL: 'silent',
     },
   })
+}
+
+async function expectDatabaseDropped(databaseUri: string) {
+  const client = new MongoClient(databaseUri)
+  await client.connect()
+  const collections = await client.db().listCollections().toArray()
+  await client.close()
+
+  expect(collections).toEqual([])
 }
 
 async function expectCoreAcademicStructure() {

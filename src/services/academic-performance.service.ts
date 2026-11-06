@@ -18,7 +18,11 @@ import { ResultModel } from '../models/result.model.js'
 import { SectionModel } from '../models/section.model.js'
 import type { UserRole } from '../models/user.model.js'
 import { UserModel, type StudentAcademicStatus, type UserDocument } from '../models/user.model.js'
-import { serializeCourseOffering, type SerializedCourseOffering } from './course.service.js'
+import {
+  serializeCourseOfferings,
+  serializeCourseOffering,
+  type SerializedCourseOffering,
+} from './course.service.js'
 import { listSections, type SerializedSection } from './section.service.js'
 import { listSemesters, type SerializedSemester } from './semester.service.js'
 import { ApiError } from '../utils/api-error.js'
@@ -161,7 +165,7 @@ export async function updateAttendanceConfiguration(
       $set: { minimumAttendancePercentage: payload.minimumAttendancePercentage },
       $setOnInsert: { key: ATTENDANCE_CONFIGURATION_KEY },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   return {
@@ -448,25 +452,6 @@ async function findActiveOffering(offeringId: string) {
   return offering as unknown as CourseOfferingDocument
 }
 
-export async function assertTeacherOwnsCourseOffering(teacher: UserDocument, offeringId: string) {
-  if (teacher.role !== 'teacher') {
-    throw new ApiError(403, 'Teacher course access required')
-  }
-
-  ensureValidObjectId(offeringId, 'course offering')
-  const offering = await CourseOfferingModel.findOne({
-    _id: offeringId,
-    teacher: teacher._id,
-    isActive: true,
-  })
-    .select('_id')
-    .exec()
-
-  if (!offering) {
-    throw new ApiError(403, 'Teacher can only access assigned course sections')
-  }
-}
-
 export async function assertStudentEnrolledInCourseOffering(
   student: UserDocument,
   offeringId: string
@@ -621,11 +606,7 @@ export async function listAcademicPerformanceOfferings(
     .populate({ path: 'teacher', populate: ['department'] })
     .exec()
 
-  return Promise.all(
-    offerings.map((offering) =>
-      serializeCourseOffering(offering as unknown as CourseOfferingDocument)
-    )
-  )
+  return serializeCourseOfferings(offerings)
 }
 
 export async function listAcademicPerformanceOfferingStudents(
@@ -681,7 +662,7 @@ export async function saveAttendanceSession(
         records,
       },
     },
-    { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+    { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
   ).exec()
 
   await notifyAttendanceUpdated(session!)
@@ -810,6 +791,16 @@ function summarizeAttendanceRecords(
     }
   }
 
+  return attendanceSummary(offering, totals, requiredPercentage)
+}
+
+type AttendanceTotals = { present: number; absent: number; leave: number }
+
+function attendanceSummary(
+  offering: SerializedCourseOffering,
+  totals: AttendanceTotals,
+  requiredPercentage: number
+): AttendanceCourseSummary {
   const totalClasses = totals.present + totals.absent + totals.leave
   const percentage = attendancePercentage(totals.present, totalClasses)
 
@@ -865,13 +856,13 @@ export async function getStudentAttendanceSummaries(
   const [sessions, configuration] = await Promise.all([
     AttendanceSessionModel.find({
       courseOffering: { $in: offerings.map((offering) => offering._id) },
-    }).exec(),
+    })
+      .select({ courseOffering: 1, records: { $elemMatch: { student: student._id } } })
+      .exec(),
     getAttendanceConfiguration(),
   ])
   const serializedStudent = serializeAcademicStudent(studentRecord)
-  const serializedOfferings = await Promise.all(
-    offerings.map((offering) => serializeCourseOffering(offering))
-  )
+  const serializedOfferings = await serializeCourseOfferings(offerings)
 
   return serializedOfferings.map((offering) =>
     summarizeAttendanceRecords(
@@ -907,23 +898,49 @@ export async function listLowAttendanceStudents(
     getAttendanceConfiguration(),
   ])
 
-  const shortageGroups = await Promise.all(
-    offerings.map(async (offering) => {
-      const { students } = await listAcademicPerformanceOfferingStudents(user, offering.id)
-      const offeringSessions = sessions.filter((session) =>
-        objectIdEquals(session.courseOffering, offering.id)
-      )
-
-      return students.map((student) => ({
-        student,
-        ...summarizeAttendanceRecords(
-          offering,
-          student,
-          offeringSessions,
-          configuration.minimumAttendancePercentage
-        ),
-      }))
+  const enrollments = await EnrollmentModel.find({
+    courseOffering: { $in: offerings.map((offering) => offering.id) },
+    isActive: true,
+  })
+    .populate({
+      path: 'student',
+      select:
+        'fullName registrationNumber department program batch semester section academicStatus isActive',
+      populate: ['department', 'program', 'batch', 'semester', 'section'],
     })
+    .exec()
+  const studentsByOffering = new Map<string, AcademicPerformanceStudent[]>()
+  for (const enrollment of enrollments) {
+    if (!isPopulatedAcademicStudent(enrollment.student)) continue
+    const id = enrollment.courseOffering.toString()
+    const students = studentsByOffering.get(id) ?? []
+    students.push(serializeAcademicStudent(enrollment.student))
+    studentsByOffering.set(id, students)
+  }
+  const totalsByOffering = new Map<string, Map<string, AttendanceTotals>>()
+  for (const session of sessions) {
+    const offeringId = session.courseOffering.toString()
+    const totalsByStudent = totalsByOffering.get(offeringId) ?? new Map<string, AttendanceTotals>()
+    const seen = new Set<string>()
+    for (const record of session.records) {
+      const studentId = relationId(record.student)
+      if (!studentId || seen.has(studentId)) continue
+      seen.add(studentId)
+      const totals = totalsByStudent.get(studentId) ?? { present: 0, absent: 0, leave: 0 }
+      totals[record.status] += 1
+      totalsByStudent.set(studentId, totals)
+    }
+    totalsByOffering.set(offeringId, totalsByStudent)
+  }
+  const shortageGroups = offerings.map((offering) =>
+    (studentsByOffering.get(offering.id) ?? []).map((student) => ({
+      student,
+      ...attendanceSummary(
+        offering,
+        totalsByOffering.get(offering.id)?.get(student.id) ?? { present: 0, absent: 0, leave: 0 },
+        configuration.minimumAttendancePercentage
+      ),
+    }))
   )
 
   const shortages = shortageGroups

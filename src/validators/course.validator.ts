@@ -1,4 +1,7 @@
 import { z } from 'zod'
+import { paginationQuerySchema } from './pagination.validator.js'
+
+export const courseListQuerySchema = paginationQuerySchema
 
 export const courseParamsSchema = z.object({
   courseId: z.string().trim().min(1, 'Course ID is required'),

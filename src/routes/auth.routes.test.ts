@@ -82,8 +82,8 @@ describe('auth routes', () => {
       user,
       expiresAt: '2030-01-01T00:00:00.000Z',
     })
-    expect(response.headers['set-cookie'][0]).toContain('portal_session=raw-session-token')
-    expect(response.headers['set-cookie'][0]).toContain('HttpOnly')
+    expect(response.headers['set-cookie']?.[0]).toContain('portal_session=raw-session-token')
+    expect(response.headers['set-cookie']?.[0]).toContain('HttpOnly')
   })
 
   it('rejects invalid login payloads before hitting auth logic', async () => {

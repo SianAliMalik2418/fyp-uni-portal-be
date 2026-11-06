@@ -2,15 +2,17 @@ import { createBatch, deleteBatch, listBatches, updateBatch } from '../services/
 import { recordAuditLog } from '../services/audit-log.service.js'
 import { asyncHandler } from '../utils/async-handler.js'
 import {
+  batchListQuerySchema,
   batchParamsSchema,
   createBatchSchema,
   updateBatchSchema,
 } from '../validators/batch.validator.js'
 
-export const listBatchesController = asyncHandler(async (_req, res) => {
-  const batches = await listBatches()
+export const listBatchesController = asyncHandler(async (req, res) => {
+  const query = batchListQuerySchema.parse(req.query)
+  const result = await listBatches(query)
 
-  res.status(200).json({ batches })
+  res.status(200).json(result)
 })
 
 export const createBatchController = asyncHandler(async (req, res) => {

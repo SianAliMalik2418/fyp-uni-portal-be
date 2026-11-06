@@ -5,7 +5,7 @@ vi.mock('../models/result.model.js', () => ({
 }))
 
 vi.mock('./course.service.js', () => ({
-  serializeCourseOffering: vi.fn(),
+  serializeCourseOfferings: vi.fn().mockResolvedValue([]),
 }))
 
 const resultModel = await import('../models/result.model.js')
@@ -23,6 +23,7 @@ const semesterId = '507f1f77bcf86cd799439012'
 
 function mockResults(results: unknown[]) {
   const query = {
+    select: vi.fn().mockReturnThis(),
     populate: vi.fn().mockReturnThis(),
     sort: vi.fn().mockReturnThis(),
     exec: vi.fn().mockResolvedValue(results),
@@ -65,20 +66,22 @@ describe('student result cards', () => {
         approvedAt,
       },
     ])
-    vi.mocked(courseService.serializeCourseOffering).mockResolvedValue({
-      id: 'offering-1',
-      course: {
-        code: 'PF-101',
-        title: 'Programming Fundamentals',
-        creditHours: 3,
-        program: { id: 'program-1', name: 'BS Computer Science', code: 'BSCS' },
-        semester: {
-          id: semesterId,
-          name: 'Semester 1',
-          academicYear: '2026-2027',
+    vi.mocked(courseService.serializeCourseOfferings).mockResolvedValue([
+      {
+        id: 'offering-1',
+        course: {
+          code: 'PF-101',
+          title: 'Programming Fundamentals',
+          creditHours: 3,
+          program: { id: 'program-1', name: 'BS Computer Science', code: 'BSCS' },
+          semester: {
+            id: semesterId,
+            name: 'Semester 1',
+            academicYear: '2026-2027',
+          },
         },
       },
-    } as never)
+    ] as never)
 
     const card = await getStudentResultCard(student as never, semesterId)
 

@@ -1,4 +1,5 @@
 import mongoose, { Types } from 'mongoose'
+import { MongoClient } from 'mongodb'
 import { connectDatabase, disconnectDatabase } from '../config/db.js'
 import { env } from '../config/env.js'
 import { AnnouncementModel } from '../models/announcement.model.js'
@@ -105,13 +106,27 @@ function databaseName(databaseUri: string) {
 }
 
 function assertSafeTarget() {
-  if (env.NODE_ENV !== 'test' || databaseName(env.MONGODB_URI) !== requiredDatabaseName) {
+  if (
+    env.NODE_ENV !== 'test' ||
+    !new RegExp(`^${requiredDatabaseName}(?:_[a-f0-9]{32})?$`).test(databaseName(env.MONGODB_URI))
+  ) {
     throw new Error(`Refusing to seed non-e2e database; expected ${requiredDatabaseName}`)
   }
 }
 
 async function seed() {
   assertSafeTarget()
+  const cleanupOnly = process.argv.includes('--cleanup')
+  if (cleanupOnly) {
+    const client = new MongoClient(env.MONGODB_URI, {
+      serverSelectionTimeoutMS: env.DB_CONNECTION_TIMEOUT_MS,
+    })
+    await client.connect()
+    await client.db(databaseName(env.MONGODB_URI)).dropDatabase()
+    await client.close()
+    return
+  }
+
   await connectDatabase()
   await mongoose.connection.dropDatabase()
 
