@@ -135,11 +135,13 @@ function parseModelOutput(rawOutput: string): AiModelOutput {
   try {
     parsed = JSON.parse(rawOutput)
   } catch {
+    logger.error({ outputLength: rawOutput.length }, 'AI assistant output was not valid JSON')
     throw new ApiError(502, 'AI assistant returned an invalid response')
   }
 
   const result = aiModelOutputSchema.safeParse(parsed)
   if (!result.success) {
+    logger.error({ issues: result.error.issues }, 'AI assistant output failed validation')
     throw new ApiError(502, 'AI assistant returned an invalid response')
   }
   return result.data

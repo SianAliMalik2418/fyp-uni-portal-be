@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, SchemaType, type Schema } from '@google/generative-ai'
 import { env } from '../config/env.js'
+import { aiContextSections } from '../validators/ai-assistant.validator.js'
 import type { GeminiAssistantRequest } from './ai-assistant.service.js'
 
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
@@ -17,7 +18,7 @@ const assistantResponseSchema: Schema = {
     },
     contextSections: {
       type: SchemaType.ARRAY,
-      items: { type: SchemaType.STRING },
+      items: { type: SchemaType.STRING, format: 'enum', enum: [...aiContextSections] },
       maxItems: 6,
     },
   },
