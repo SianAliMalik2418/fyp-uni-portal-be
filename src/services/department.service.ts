@@ -1,6 +1,7 @@
 import { isValidObjectId } from 'mongoose'
 import { DepartmentModel, type DepartmentDocument } from '../models/department.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type {
   CreateDepartmentPayload,
@@ -131,6 +132,8 @@ export async function updateDepartment(departmentId: string, payload: UpdateDepa
 
 export async function deleteDepartment(departmentId: string) {
   ensureValidDepartmentId(departmentId)
+
+  await assertNoDependents('Department', departmentId, 'department')
 
   const department = await DepartmentModel.findByIdAndDelete(departmentId).exec()
 

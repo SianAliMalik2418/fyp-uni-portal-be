@@ -153,7 +153,7 @@ function referenceId(
     return undefined
   }
 
-  if (typeof reference === 'object' && '_id' in reference) {
+  if (typeof reference === 'object' && reference !== null && '_id' in reference) {
     return reference._id.toString()
   }
 
@@ -168,23 +168,29 @@ function timesOverlap(
 }
 
 function isPopulatedProgram(value: Types.ObjectId | ProgramDocument): value is ProgramDocument {
-  return typeof value === 'object' && 'code' in value && 'name' in value
+  return typeof value === 'object' && value !== null && 'code' in value && 'name' in value
 }
 
 function isPopulatedBatch(value: Types.ObjectId | BatchDocument): value is BatchDocument {
-  return typeof value === 'object' && 'startingYear' in value
+  return typeof value === 'object' && value !== null && 'startingYear' in value
 }
 
 function isPopulatedSemester(value: Types.ObjectId | SemesterDocument): value is SemesterDocument {
-  return typeof value === 'object' && 'academicYear' in value
+  return typeof value === 'object' && value !== null && 'academicYear' in value
 }
 
 function isPopulatedSection(value: Types.ObjectId | SectionDocument): value is SectionDocument {
-  return typeof value === 'object' && 'batch' in value && 'program' in value && 'semester' in value
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'batch' in value &&
+    'program' in value &&
+    'semester' in value
+  )
 }
 
 function isPopulatedCourse(value: Types.ObjectId | CourseDocument): value is CourseDocument {
-  return typeof value === 'object' && 'code' in value && 'title' in value
+  return typeof value === 'object' && value !== null && 'code' in value && 'title' in value
 }
 
 function isPopulatedTeacher(
@@ -196,7 +202,7 @@ function isPopulatedTeacher(
 function isPopulatedOffering(
   value: Types.ObjectId | CourseOfferingDocument
 ): value is PopulatedOffering {
-  return typeof value === 'object' && 'course' in value && 'isActive' in value
+  return typeof value === 'object' && value !== null && 'course' in value && 'isActive' in value
 }
 
 function serializeTimetableTeacher(teacher: UserDocument): SerializedTimetableTeacher {

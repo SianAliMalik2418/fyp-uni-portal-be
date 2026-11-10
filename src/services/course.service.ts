@@ -11,6 +11,7 @@ import { SectionModel, type SectionDocument } from '../models/section.model.js'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { UserModel, type UserDocument } from '../models/user.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import { notifyCourseAssigned } from './notification.service.js'
 import type {
@@ -111,11 +112,11 @@ function isPopulatedSemester(
 }
 
 function isPopulatedCourse(value: Types.ObjectId | CourseDocument): value is CourseDocument {
-  return typeof value === 'object' && 'creditHours' in value
+  return typeof value === 'object' && value !== null && 'creditHours' in value
 }
 
 function isPopulatedSection(value: Types.ObjectId | SectionDocument): value is SectionDocument {
-  return typeof value === 'object' && 'batch' in value && 'program' in value
+  return typeof value === 'object' && value !== null && 'batch' in value && 'program' in value
 }
 
 function isPopulatedTeacher(
@@ -556,6 +557,8 @@ export async function deleteCourse(courseId: string) {
     courseOffering: { $in: offerings.map((offering) => offering._id) },
   }).exec()
   await CourseOfferingModel.deleteMany({ course: courseId }).exec()
+  await assertNoDependents('Course', courseId, 'course')
+
   const course = await CourseModel.findByIdAndDelete(courseId).exec()
 
   if (!course) {

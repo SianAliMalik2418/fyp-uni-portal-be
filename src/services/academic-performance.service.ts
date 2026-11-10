@@ -222,7 +222,7 @@ function relationId(value: unknown) {
     return value
   }
 
-  if (typeof value === 'object' && '_id' in value) {
+  if (typeof value === 'object' && value !== null && '_id' in value) {
     return String((value as { _id: Types.ObjectId | string })._id)
   }
 

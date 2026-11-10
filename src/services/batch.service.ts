@@ -2,6 +2,7 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { BatchModel, type BatchDocument } from '../models/batch.model.js'
 import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateBatchPayload, UpdateBatchPayload } from '../validators/batch.validator.js'
 import type { PaginationQuery } from '../validators/pagination.validator.js'
@@ -35,7 +36,7 @@ function escapeRegExp(value: string) {
 }
 
 function isPopulatedProgram(value: Types.ObjectId | ProgramDocument): value is ProgramDocument {
-  return typeof value === 'object' && 'name' in value && 'code' in value
+  return typeof value === 'object' && value !== null && 'name' in value && 'code' in value
 }
 
 function serializeProgram(program: ProgramDocument): SerializedBatchProgram {
@@ -190,6 +191,8 @@ export async function updateBatch(batchId: string, payload: UpdateBatchPayload) 
 
 export async function deleteBatch(batchId: string) {
   ensureValidObjectId(batchId, 'batch')
+
+  await assertNoDependents('Batch', batchId, 'batch')
 
   const batch = await BatchModel.findByIdAndDelete(batchId).exec()
 

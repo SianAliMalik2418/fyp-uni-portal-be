@@ -69,11 +69,11 @@ function optionalString(value: string | undefined) {
 }
 
 function isPopulatedProgram(value: Types.ObjectId | ProgramDocument): value is ProgramDocument {
-  return typeof value === 'object' && 'name' in value && 'code' in value
+  return typeof value === 'object' && value !== null && 'name' in value && 'code' in value
 }
 
 function isPopulatedSemester(value: Types.ObjectId | SemesterDocument): value is SemesterDocument {
-  return typeof value === 'object' && 'name' in value && 'academicYear' in value
+  return typeof value === 'object' && value !== null && 'name' in value && 'academicYear' in value
 }
 
 function isPopulatedCourse(value: Types.ObjectId | CourseDocument): value is PopulatedCourse {

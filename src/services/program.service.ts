@@ -2,6 +2,7 @@ import { isValidObjectId, type Types } from 'mongoose'
 import { DepartmentModel, type DepartmentDocument } from '../models/department.model.js'
 import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateProgramPayload, UpdateProgramPayload } from '../validators/program.validator.js'
 import type { PaginationQuery } from '../validators/pagination.validator.js'
@@ -43,7 +44,7 @@ function ensureValidObjectId(value: string, label: string) {
 function isPopulatedDepartment(
   value: Types.ObjectId | DepartmentDocument
 ): value is DepartmentDocument {
-  return typeof value === 'object' && 'name' in value && 'code' in value
+  return typeof value === 'object' && value !== null && 'name' in value && 'code' in value
 }
 
 function serializeProgramDepartment(department: DepartmentDocument): SerializedProgramDepartment {
@@ -55,8 +56,20 @@ function serializeProgramDepartment(department: DepartmentDocument): SerializedP
   }
 }
 
+// A deleted department populates as null. Show the program with a clear placeholder so an admin
+// can reassign it, instead of failing the whole list.
+const deletedDepartment: SerializedProgramDepartment = {
+  id: '',
+  name: 'Deleted department',
+  code: 'N/A',
+  isActive: false,
+}
+
 export function serializeProgram(program: ProgramDocument): SerializedProgram {
-  if (!isPopulatedDepartment(program.department)) {
+  const department: unknown = program.department
+  const isDepartmentMissing = department === null || department === undefined
+
+  if (!isDepartmentMissing && !isPopulatedDepartment(program.department)) {
     throw new ApiError(500, 'Program department was not loaded')
   }
 
@@ -64,7 +77,9 @@ export function serializeProgram(program: ProgramDocument): SerializedProgram {
     id: program.id,
     name: program.name,
     code: program.code,
-    department: serializeProgramDepartment(program.department),
+    department: isPopulatedDepartment(program.department)
+      ? serializeProgramDepartment(program.department)
+      : deletedDepartment,
     totalSemesters: program.totalSemesters,
     duration: program.duration,
     durationUnit: program.durationUnit,
@@ -211,6 +226,8 @@ export async function updateProgram(programId: string, payload: UpdateProgramPay
 
 export async function deleteProgram(programId: string) {
   ensureValidObjectId(programId, 'program')
+
+  await assertNoDependents('Program', programId, 'program')
 
   const program = await ProgramModel.findByIdAndDelete(programId).exec()
 

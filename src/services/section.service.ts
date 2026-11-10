@@ -4,6 +4,7 @@ import { ProgramModel, type ProgramDocument } from '../models/program.model.js'
 import { SectionModel, type SectionDocument } from '../models/section.model.js'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type { CreateSectionPayload, UpdateSectionPayload } from '../validators/section.validator.js'
 import type { PaginationQuery } from '../validators/pagination.validator.js'
@@ -36,15 +37,15 @@ function escapeRegExp(value: string) {
 }
 
 function isPopulatedProgram(value: Types.ObjectId | ProgramDocument): value is ProgramDocument {
-  return typeof value === 'object' && 'name' in value && 'code' in value
+  return typeof value === 'object' && value !== null && 'name' in value && 'code' in value
 }
 
 function isPopulatedBatch(value: Types.ObjectId | BatchDocument): value is BatchDocument {
-  return typeof value === 'object' && 'startingYear' in value
+  return typeof value === 'object' && value !== null && 'startingYear' in value
 }
 
 function isPopulatedSemester(value: Types.ObjectId | SemesterDocument): value is SemesterDocument {
-  return typeof value === 'object' && 'academicYear' in value
+  return typeof value === 'object' && value !== null && 'academicYear' in value
 }
 
 export function serializeSection(section: SectionDocument): SerializedSection {
@@ -260,6 +261,8 @@ export async function updateSection(sectionId: string, payload: UpdateSectionPay
 
 export async function deleteSection(sectionId: string) {
   ensureValidObjectId(sectionId, 'section')
+
+  await assertNoDependents('Section', sectionId, 'section')
 
   const section = await SectionModel.findByIdAndDelete(sectionId).exec()
 

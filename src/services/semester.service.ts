@@ -1,6 +1,7 @@
 import { isValidObjectId } from 'mongoose'
 import { SemesterModel, type SemesterDocument } from '../models/semester.model.js'
 import { ApiError } from '../utils/api-error.js'
+import { assertNoDependents } from '../utils/referential-integrity.js'
 import { paginationMeta, paginationSkip } from '../utils/pagination.js'
 import type {
   CreateSemesterPayload,
@@ -183,6 +184,8 @@ export async function closeSemester(semesterId: string) {
 
 export async function deleteSemester(semesterId: string) {
   ensureValidSemesterId(semesterId)
+
+  await assertNoDependents('Semester', semesterId, 'semester')
 
   const semester = await SemesterModel.findByIdAndDelete(semesterId).exec()
 
