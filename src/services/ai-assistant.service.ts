@@ -89,7 +89,16 @@ const mutationActionPattern =
 const universityRecordPattern =
   /\b(attendance|marks?|grades?|gpa|cgpa|profile|fees?|results?|courses?|timetable|exams?|announcements?)\b/i
 
+// "Can I pay in installments?" and "How do I change my name?" ask about a policy, so they get an
+// answer. A request aimed at the assistant ("Can you...", "Please...", "for me") is still refused.
+const permissionQuestionPattern =
+  /^\s*(can\s+i|could\s+i|may\s+i|how\s+(do|can|should)\s+i|am\s+i\s+(allowed|able)|is\s+it\s+possible|what\s+(happens|if))\b/i
+const requestToAssistantPattern = /\b(you|please|for\s+me)\b/i
+
 function isWriteRequest(message: string) {
+  if (permissionQuestionPattern.test(message) && !requestToAssistantPattern.test(message)) {
+    return false
+  }
   return mutationActionPattern.test(message) && universityRecordPattern.test(message)
 }
 

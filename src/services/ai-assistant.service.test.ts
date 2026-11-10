@@ -381,6 +381,44 @@ describe('AI assistant service', () => {
     expect(AI_UNKNOWN_INFORMATION_FALLBACK).toMatch(/attendance/)
   })
 
+  it.each([
+    'Change my attendance to present',
+    'Please update my marks',
+    'Can you change my attendance to 100 percent?',
+    'Could you delete my fee record for me',
+  ])('refuses %j as a request to change records', async (message) => {
+    const { dependencies } = createDependencies({})
+
+    const answer = await createAiAssistantService(dependencies).ask(
+      { id: 'student-1', role: 'student' } as never,
+      { message, conversation: [] }
+    )
+
+    expect(answer.answer).toBe(AI_READ_ONLY_REFUSAL)
+    expect(dependencies.generate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    'Can I pay my fee in installments?',
+    'How do I change my name?',
+    'How can I update my email address?',
+    'What happens if I add a course late?',
+  ])('answers %j as a policy question instead of refusing it', async (message) => {
+    const { dependencies } = createDependencies({
+      answer: 'Ask the Registrar Office.',
+      grounded: false,
+      knowledgeKeys: [],
+      contextSections: [],
+    })
+
+    await createAiAssistantService(dependencies).ask(
+      { id: 'student-1', role: 'student' } as never,
+      { message, conversation: [] }
+    )
+
+    expect(dependencies.generate).toHaveBeenCalledTimes(1)
+  })
+
   it('uses a fixed fallback when Gemini reports insufficient grounding', async () => {
     const { dependencies } = createDependencies({
       answer: 'I am unsure.',
