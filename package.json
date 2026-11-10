@@ -10,6 +10,7 @@
     "seed:admin": "tsx src/scripts/seed-admin.ts",
     "seed:knowledge": "tsx src/scripts/seed-knowledge.ts",
     "seed:demo": "tsx src/scripts/seed-demo.ts",
+    "seed:university": "tsx src/scripts/seed-university.ts",
     "seed:e2e": "tsx src/scripts/seed-e2e.ts",
     "lint": "eslint .",
     "test": "vitest run",
