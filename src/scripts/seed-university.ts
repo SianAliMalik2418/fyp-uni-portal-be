@@ -10,7 +10,8 @@
  * - Run again with --reset to rebuild only its own records.
  *
  * Usage: bun run seed:university [--check] [--reset]
- *   --check  verify there are no conflicts and stop without writing anything
+ *   --check       verify there are no conflicts and stop without writing anything
+ *   --reset-only  with --reset, remove the seeded records and stop (no reseed)
  */
 import mongoose, { Types } from 'mongoose'
 import { connectDatabase, disconnectDatabase } from '../config/db.js'
@@ -668,7 +669,29 @@ const BASE_ASSESSMENTS = [0, 1, 4] // Quiz 1, Assignment 1 and Midterm have happ
 // ---------------------------------------------------------------------------------------------
 // Generated model
 // ---------------------------------------------------------------------------------------------
-type Staff = { id: Types.ObjectId; name: string; dept: DepartmentKey; role: 'hod' | 'teacher' }
+// Existing real logins keep their own email, name and password. Each one takes the place of a
+// generated person, so it works with all the new data (department, courses, results, fees).
+const ADOPTED = {
+  staff: new Map<number, string>([
+    [0, 'testhod@gmail.com'],
+    [1, 'testteacher@gmail.com'],
+    [6, 'tayyabahamid.99.12@gmail.com'],
+  ]),
+  students: [
+    { cohort: 0, number: 1, email: 'sianalimalik2418@gmail.com' },
+    { cohort: 3, number: 1, email: 'shoni@gmail.com' },
+    { cohort: 8, number: 1, email: 'hmg@gmail.com' },
+  ],
+}
+
+type Staff = {
+  id: Types.ObjectId
+  name: string
+  dept: DepartmentKey
+  role: 'hod' | 'teacher'
+  adopted?: boolean
+  email?: string
+}
 type Student = {
   id: Types.ObjectId
   name: string
@@ -679,6 +702,7 @@ type Student = {
   attendanceRate: number
   cohort: number
   number: number
+  adopted?: boolean
 }
 type OfferingSeed = {
   id: Types.ObjectId
@@ -743,7 +767,7 @@ function resultHistory(
 // Main
 // ---------------------------------------------------------------------------------------------
 async function seedUniversity() {
-  const reset = process.argv.includes('--reset')
+  const reset = process.argv.includes('--reset') || process.argv.includes('--reset-only')
   await connectDatabase()
 
   type Deletable = { deleteMany(filter: object): { exec(): Promise<{ deletedCount: number }> } }
@@ -779,6 +803,10 @@ async function seedUniversity() {
     for (const [label, model, namespace] of [...namespaces].reverse()) {
       const { deletedCount } = await model.deleteMany({ _id: inRange(namespace) }).exec()
       console.log(`reset: removed ${deletedCount} ${label}`)
+    }
+    if (process.argv.includes('--reset-only')) {
+      console.log('Reset complete. Nothing was seeded.')
+      return
     }
   }
 
@@ -829,12 +857,28 @@ async function seedUniversity() {
   // staff
   const nextUser = counter(NS.user)
   const adminId = nextUser()
-  const staff: Staff[] = staffSeeds.map((seed) => ({
-    id: nextUser(),
-    name: seed.name,
-    dept: seed.dept,
-    role: seed.role,
-  }))
+  const adoptedUsers = new Map(
+    (
+      await UserModel.find({
+        email: { $in: [...ADOPTED.staff.values(), ...ADOPTED.students.map((slot) => slot.email)] },
+        _id: { $not: inRange(NS.user) },
+      })
+        .select('_id fullName email role')
+        .lean()
+    ).map((user) => [user.email, user])
+  )
+  const staff: Staff[] = staffSeeds.map((seed, index) => {
+    const generatedId = nextUser()
+    const existing = adoptedUsers.get(ADOPTED.staff.get(index) ?? '')
+    const adopted = existing?.role === seed.role ? existing : undefined
+    return {
+      id: adopted?._id ?? generatedId,
+      name: adopted?.fullName ?? seed.name,
+      dept: seed.dept,
+      role: seed.role,
+      ...(adopted ? { adopted: true, email: adopted.email } : {}),
+    }
+  })
   const hodOf = new Map<DepartmentKey, Staff>(
     staff.filter((member) => member.role === 'hod').map((member) => [member.dept, member])
   )
@@ -857,10 +901,17 @@ async function seedUniversity() {
       while (usedEmails.has(handle)) handle = `${first}.${last}${++suffix}`.toLowerCase()
       usedEmails.add(handle)
       const code = programSeed.get(cohort.program)!.code
+      const generatedId = nextUser()
+      const slot = ADOPTED.students.find(
+        (entry) => entry.cohort === cohortIndex && entry.number === number
+      )
+      const existing = slot ? adoptedUsers.get(slot.email) : undefined
+      const adopted = existing?.role === 'student' ? existing : undefined
       students.push({
-        id: nextUser(),
-        name: `${first} ${last}`,
-        email: `${handle}@${STUDENT_DOMAIN}`,
+        id: adopted?._id ?? generatedId,
+        name: adopted?.fullName ?? `${first} ${last}`,
+        email: adopted?.email ?? `${handle}@${STUDENT_DOMAIN}`,
+        ...(adopted ? { adopted: true } : {}),
         registrationNumber: `${String(cohort.year).slice(2)}-${code}-${String(number).padStart(3, '0')}`,
         program: cohort.program,
         ability: clamp(Math.round(54 + random() * 42), 52, 96),
@@ -949,8 +1000,10 @@ async function seedUniversity() {
         {
           email: {
             $in: [
-              ...staffSeeds.map((s) => `${slug(s.name)}@${STAFF_DOMAIN}`),
-              ...students.map((s) => s.email),
+              ...staffSeeds
+                .filter((_, index) => !staff[index]!.adopted)
+                .map((s) => `${slug(s.name)}@${STAFF_DOMAIN}`),
+              ...students.filter((s) => !s.adopted).map((s) => s.email),
               `registrar@${STAFF_DOMAIN}`,
             ],
           },
@@ -1078,41 +1131,89 @@ async function seedUniversity() {
       employeeId: 'A-001',
       designation: 'Registrar',
     },
-    ...staff.map((member, index) => ({
-      _id: member.id,
-      fullName: member.name,
-      email: `${slug(member.name)}@${STAFF_DOMAIN}`,
-      role: member.role,
-      passwordHash,
-      isActive: true,
-      mustChangePassword: false,
-      employeeId: `${member.role === 'hod' ? 'H' : 'T'}-${String(index + 1).padStart(3, '0')}`,
-      department: departmentId.get(member.dept),
-      designation: staffSeeds[index]!.designation,
-      phoneNumber: phone(index),
-    })),
-    ...students.map((student, index) => {
+    ...staff.flatMap((member, index) =>
+      member.adopted
+        ? []
+        : [
+            {
+              _id: member.id,
+              fullName: member.name,
+              email: `${slug(member.name)}@${STAFF_DOMAIN}`,
+              role: member.role,
+              passwordHash,
+              isActive: true,
+              mustChangePassword: false,
+              employeeId: `${member.role === 'hod' ? 'H' : 'T'}-${String(index + 1).padStart(3, '0')}`,
+              department: departmentId.get(member.dept),
+              designation: staffSeeds[index]!.designation,
+              phoneNumber: phone(index),
+            },
+          ]
+    ),
+    ...students.flatMap((student, index) => {
+      if (student.adopted) return []
       const cohort = cohortSeeds[student.cohort]!
       const program = programSeed.get(student.program)!
-      return {
-        _id: student.id,
-        fullName: student.name,
-        email: student.email,
-        role: 'student',
-        passwordHash,
-        isActive: true,
-        mustChangePassword: false,
-        registrationNumber: student.registrationNumber,
-        department: departmentId.get(program.dept),
-        program: programId.get(student.program),
-        batch: batchId.get(`${cohort.program}-${cohort.year}`),
-        semester: currentTerm,
-        section: sectionIds[student.cohort]!.current,
-        academicStatus: 'active',
-        phoneNumber: phone(index + 100),
-      }
+      return [
+        {
+          _id: student.id,
+          fullName: student.name,
+          email: student.email,
+          role: 'student',
+          passwordHash,
+          isActive: true,
+          mustChangePassword: false,
+          registrationNumber: student.registrationNumber,
+          department: departmentId.get(program.dept),
+          program: programId.get(student.program),
+          batch: batchId.get(`${cohort.program}-${cohort.year}`),
+          semester: currentTerm,
+          section: sectionIds[student.cohort]!.current,
+          academicStatus: 'active',
+          phoneNumber: phone(index + 100),
+        },
+      ]
     }),
   ])
+
+  // Existing logins keep their email, name and password. Only their place in the university
+  // changes.
+  for (const [index, member] of staff.entries()) {
+    if (!member.adopted) continue
+    await UserModel.updateOne(
+      { _id: member.id },
+      {
+        $set: {
+          isActive: true,
+          employeeId: `${member.role === 'hod' ? 'H' : 'T'}-${String(index + 1).padStart(3, '0')}`,
+          department: departmentId.get(member.dept)!,
+          designation: staffSeeds[index]!.designation,
+          phoneNumber: phone(index),
+        },
+      }
+    )
+  }
+  for (const [index, student] of students.entries()) {
+    if (!student.adopted) continue
+    const cohort = cohortSeeds[student.cohort]!
+    const program = programSeed.get(student.program)!
+    await UserModel.updateOne(
+      { _id: student.id },
+      {
+        $set: {
+          isActive: true,
+          registrationNumber: student.registrationNumber,
+          department: departmentId.get(program.dept)!,
+          program: programId.get(student.program)!,
+          batch: batchId.get(`${cohort.program}-${cohort.year}`)!,
+          semester: currentTerm,
+          section: sectionIds[student.cohort]!.current,
+          academicStatus: 'active',
+          phoneNumber: phone(index + 100),
+        },
+      }
+    )
+  }
 
   await CourseModel.insertMany(courses)
   await CourseOfferingModel.insertMany(
@@ -1674,8 +1775,8 @@ async function seedUniversity() {
         password: PASSWORD,
         logins: {
           admin: `registrar@${STAFF_DOMAIN}`,
-          hod: `${slug(staffSeeds[0]!.name)}@${STAFF_DOMAIN}`,
-          teacher: `${slug(staffSeeds[1]!.name)}@${STAFF_DOMAIN}`,
+          hod: staff[0]!.email ?? `${slug(staffSeeds[0]!.name)}@${STAFF_DOMAIN}`,
+          teacher: staff[1]!.email ?? `${slug(staffSeeds[1]!.name)}@${STAFF_DOMAIN}`,
           student: students[0]!.email,
         },
         created: {
