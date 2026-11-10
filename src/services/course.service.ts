@@ -664,7 +664,16 @@ export async function listCourseOfferings(user: UserDocument) {
   return serializeCourseOfferings(offerings)
 }
 
-async function assertCanManageOfferingTeacher(
+// A reference is either an ObjectId or a populated document. toString() on a document prints the
+// whole object, never the id, so always compare ids.
+function referenceId(value: unknown) {
+  if (value && typeof value === 'object' && '_id' in value) {
+    return String((value as { _id: unknown })._id)
+  }
+  return String(value)
+}
+
+export async function assertCanManageOfferingTeacher(
   offering: CourseOfferingDocument,
   user: UserDocument
 ) {
@@ -682,7 +691,7 @@ async function assertCanManageOfferingTeacher(
     throw new ApiError(500, 'Course was not loaded')
   }
 
-  if (offering.course.department.toString() !== user.department.toString()) {
+  if (referenceId(offering.course.department) !== referenceId(user.department)) {
     throw new ApiError(403, 'HOD can only assign teachers for their department courses')
   }
 }
