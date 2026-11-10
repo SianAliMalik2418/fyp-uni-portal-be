@@ -463,6 +463,107 @@ const curriculum: Record<ProgramKey, Partial<Record<number, string[]>>> = {
   },
 }
 
+// Stages for the earliest finished term (Fall 2025), so every student has two terms of results.
+const extraCurriculum: Record<ProgramKey, Partial<Record<number, string[]>>> = {
+  bsse: {
+    1: [
+      'Programming Fundamentals',
+      'Introduction to Software Engineering',
+      'Calculus I',
+      'Applied Physics',
+      'Islamic Studies',
+    ],
+    5: [
+      'Operating Systems',
+      'Software Construction',
+      'Human Computer Interaction',
+      'Theory of Automata',
+      'Software Testing',
+    ],
+  },
+  msse: {
+    1: [
+      'Software Engineering Foundations',
+      'Advanced Algorithms',
+      'Research Writing',
+      'Software Architecture Principles',
+      'Statistics for Researchers',
+    ],
+  },
+  bsai: {
+    1: [
+      'Introduction to Computing',
+      'Programming Fundamentals',
+      'Calculus I',
+      'Applied Physics',
+      'Functional English',
+    ],
+  },
+  bsds: {
+    3: [
+      'Data Structures',
+      'Probability for Data Science',
+      'Database Systems',
+      'Linear Algebra',
+      'Islamic Studies',
+    ],
+  },
+  bsee: {
+    1: [
+      'Introduction to Electrical Engineering',
+      'Calculus I',
+      'Applied Chemistry',
+      'Workshop Practice',
+      'Functional English',
+    ],
+  },
+  bba: {
+    1: [
+      'Introduction to Business',
+      'Principles of Accounting',
+      'Business English',
+      'Introduction to Computing',
+      'Islamic Studies',
+    ],
+  },
+  bsaf: {
+    1: [
+      'Principles of Accounting',
+      'Introduction to Finance',
+      'Business Mathematics I',
+      'Business English',
+      'Pakistan Studies',
+    ],
+  },
+  mba: {
+    1: [
+      'Accounting for Managers',
+      'Organizational Behavior',
+      'Business Statistics',
+      'Business Communication',
+      'Principles of Management',
+    ],
+  },
+  bsmath: {
+    3: [
+      'Linear Algebra',
+      'Calculus III',
+      'Discrete Mathematics',
+      'Differential Equations I',
+      'Islamic Studies',
+    ],
+  },
+  bsphy: {
+    1: [
+      'Introduction to Physics',
+      'Calculus I',
+      'Chemistry for Physicists',
+      'Computer Fundamentals',
+      'Functional English',
+    ],
+  },
+}
+
 // One cohort is one batch in one section. `stage` is the program semester it is in during Fall 2026.
 const cohortSeeds = [
   { program: 'bsse', year: 2023, stage: 7, size: 12 },
@@ -703,10 +804,11 @@ type Student = {
   cohort: number
   number: number
   adopted?: boolean
+  status: 'active' | 'repeating'
 }
 type OfferingSeed = {
   id: Types.ObjectId
-  term: 'current' | 'past'
+  term: 'current' | 'past' | 'earlier'
   cohort: number
   courseId: Types.ObjectId
   courseTitle: string
@@ -839,6 +941,8 @@ async function seedUniversity() {
   }
   const currentTerm = semesterId.get('fall2026')!
   const pastTerm = semesterId.get('spring2026')!
+  const earlierTerm = semesterId.get('fall2025')!
+  const upcomingTerm = semesterId.get('spring2027')!
 
   const nextBatch = counter(NS.batch)
   const batchId = new Map<string, Types.ObjectId>()
@@ -852,7 +956,12 @@ async function seedUniversity() {
   }
 
   const nextSection = counter(NS.section)
-  const sectionIds = cohortSeeds.map(() => ({ current: nextSection(), past: nextSection() }))
+  const sectionIds = cohortSeeds.map(() => ({
+    current: nextSection(),
+    past: nextSection(),
+    earlier: nextSection(),
+    upcoming: nextSection(),
+  }))
 
   // staff
   const nextUser = counter(NS.user)
@@ -918,6 +1027,7 @@ async function seedUniversity() {
         attendanceRate: clamp(0.62 + random() * 0.37, 0.6, 0.99),
         cohort: cohortIndex,
         number,
+        status: !adopted && [7, 52, 101].includes(global) ? 'repeating' : 'active',
       })
     }
   })
@@ -930,11 +1040,13 @@ async function seedUniversity() {
   const teacherCursor = new Map<DepartmentKey, number>()
   const usedCodes = new Set<string>()
 
+  const termSemester = { current: currentTerm, past: pastTerm, earlier: earlierTerm }
+
   cohortSeeds.forEach((cohort, cohortIndex) => {
     const program = programSeed.get(cohort.program)!
-    for (const term of ['past', 'current'] as const) {
-      const stage = term === 'current' ? cohort.stage : cohort.stage - 1
-      const titles = curriculum[cohort.program][stage]
+    for (const term of ['earlier', 'past', 'current'] as const) {
+      const stage = cohort.stage - (term === 'current' ? 0 : term === 'past' ? 1 : 2)
+      const titles = curriculum[cohort.program][stage] ?? extraCurriculum[cohort.program][stage]
       if (!titles) throw new Error(`Missing curriculum for ${cohort.program} stage ${stage}`)
       titles.forEach((title, index) => {
         let code = `${program.prefix}-${stage}${String(index + 1).padStart(2, '0')}`
@@ -949,7 +1061,7 @@ async function seedUniversity() {
           creditHours: credit,
           department: departmentId.get(program.dept),
           program: programId.get(cohort.program),
-          semester: term === 'current' ? currentTerm : pastTerm,
+          semester: termSemester[term],
           description: `${title} for ${program.name}, semester ${stage}.`,
           isActive: true,
         })
@@ -965,8 +1077,7 @@ async function seedUniversity() {
           courseCode: code,
           creditHours: credit,
           teacher: pool[cursor % pool.length]!,
-          section:
-            term === 'current' ? sectionIds[cohortIndex]!.current : sectionIds[cohortIndex]!.past,
+          section: sectionIds[cohortIndex]![term],
           program: cohort.program,
           dept: program.dept,
           index,
@@ -995,7 +1106,11 @@ async function seedUniversity() {
       .select('code')
       .lean(),
     UserModel.find({
-      _id: mine(NS.user),
+      // Adopted accounts are allowed to exist, and already hold the numbers this seed gave them.
+      _id: {
+        ...mine(NS.user),
+        $nin: [...staff, ...students].filter((person) => person.adopted).map((person) => person.id),
+      },
       $or: [
         {
           email: {
@@ -1111,8 +1226,11 @@ async function seedUniversity() {
         isActive: true,
       }
       return [
+        { _id: sectionIds[index]!.earlier, ...base, semester: earlierTerm, isActive: false },
         { _id: sectionIds[index]!.past, ...base, semester: pastTerm, isActive: false },
         { _id: sectionIds[index]!.current, ...base, semester: currentTerm },
+        // Next term's section, so the semester promotion tool has somewhere to move students.
+        { _id: sectionIds[index]!.upcoming, ...base, semester: upcomingTerm },
       ]
     })
   )
@@ -1169,7 +1287,7 @@ async function seedUniversity() {
           batch: batchId.get(`${cohort.program}-${cohort.year}`),
           semester: currentTerm,
           section: sectionIds[student.cohort]!.current,
-          academicStatus: 'active',
+          academicStatus: student.status,
           phoneNumber: phone(index + 100),
         },
       ]
@@ -1363,12 +1481,17 @@ async function seedUniversity() {
   // Which current offerings carry a complete result, and in what state. This gives the HOD real
   // items to approve or return and gives the teacher real items to submit.
   const resultPlan = new Map<Types.ObjectId, ResultStatus>()
-  for (const dept of departmentSeeds) {
-    const own = currentOfferings.filter((offering) => offering.dept === dept.key)
+  const offeringsByTeacher = new Map<string, OfferingSeed[]>()
+  for (const offering of currentOfferings) {
+    const key = offering.teacher.id.toString()
+    offeringsByTeacher.set(key, [...(offeringsByTeacher.get(key) ?? []), offering])
+  }
+  let teacherPosition = 0
+  for (const own of offeringsByTeacher.values()) {
     if (own[0]) resultPlan.set(own[0].id, 'pending')
-    if (own[1])
-      resultPlan.set(own[1].id, dept.key === 'ee' || dept.key === 'math' ? 'returned' : 'draft')
-    if (own[2] && dept.key === 'mgt') resultPlan.set(own[2].id, 'pending')
+    if (own[1]) resultPlan.set(own[1].id, teacherPosition % 3 === 0 ? 'returned' : 'draft')
+    // Any further course is left without a submitted result, so a teacher can submit it live.
+    teacherPosition += 1
   }
 
   for (const offering of currentOfferings) {
@@ -1439,12 +1562,13 @@ async function seedUniversity() {
     }
   }
 
-  // Previous term: every course finished and was approved, so students have a real GPA and CGPA.
-  for (const offering of offerings.filter((entry) => entry.term === 'past')) {
+  // Finished terms: every course was approved, so students have a real GPA and CGPA.
+  for (const offering of offerings.filter((entry) => entry.term !== 'current')) {
     const roster = enrolledIn(offering)
     const hod = hodOf.get(offering.dept)!
-    const submittedAt = new Date('2026-06-20T09:00:00.000Z')
-    const approvedAt = new Date('2026-06-26T09:00:00.000Z')
+    const isPast = offering.term === 'past'
+    const submittedAt = new Date(isPast ? '2026-06-20T09:00:00.000Z' : '2026-01-10T09:00:00.000Z')
+    const approvedAt = new Date(isPast ? '2026-06-26T09:00:00.000Z' : '2026-01-18T09:00:00.000Z')
     resultDocs.push({
       _id: nextResult(),
       courseOffering: offering.id,
@@ -1494,6 +1618,16 @@ async function seedUniversity() {
             ? 'Awaiting first installment'
             : 'Installment plan in progress'
       return [
+        {
+          _id: nextFee(),
+          student: student.id,
+          semester: earlierTerm,
+          totalAmount: total,
+          paidAmount: total,
+          dueDate: new Date('2025-10-15T00:00:00.000Z'),
+          paymentDate: new Date('2025-09-20T00:00:00.000Z'),
+          notes: 'Paid in full',
+        },
         {
           _id: nextFee(),
           student: student.id,
@@ -1655,6 +1789,98 @@ async function seedUniversity() {
     message,
     resourcePath,
   })
+  const demoAdmin = await UserModel.findOne({
+    email: 'testadmin@gmail.com',
+    _id: { $not: inRange(NS.user) },
+  })
+    .select('_id')
+    .lean()
+  const returnedByTeacher = new Map<string, OfferingSeed>()
+  for (const offering of currentOfferings) {
+    if (resultPlan.get(offering.id) === 'returned') {
+      returnedByTeacher.set(offering.teacher.id.toString(), offering)
+    }
+  }
+  const extraNotifications = [
+    ...[adminId, ...(demoAdmin ? [demoAdmin._id] : [])].flatMap((recipient) => [
+      notify(
+        recipient,
+        'account_created',
+        'welcome',
+        'Welcome to the portal',
+        'Your administrator account is ready.',
+        '/dashboard'
+      ),
+      notify(
+        recipient,
+        'course_assigned',
+        'ops-courses',
+        'Courses assigned',
+        `${currentOfferings.length} course assignments were created for Fall 2026.`,
+        '/courses'
+      ),
+      notify(
+        recipient,
+        'attendance_updated',
+        'ops-shortage',
+        'Attendance shortages found',
+        'Students below the attendance requirement were found across departments.',
+        '/dashboard'
+      ),
+    ]),
+    ...staff
+      .filter((member) => member.role === 'hod')
+      .flatMap((hod) => [
+        notify(
+          hod.id,
+          'account_created',
+          'welcome',
+          'Welcome to the portal',
+          'Your head of department account is ready.',
+          '/dashboard'
+        ),
+        notify(
+          hod.id,
+          'attendance_updated',
+          'shortage-fall2026',
+          'Attendance shortages updated',
+          'Students in your department are below the attendance requirement.',
+          '/attendance'
+        ),
+      ]),
+    ...staff
+      .filter((member) => member.role === 'teacher')
+      .map((teacher) =>
+        notify(
+          teacher.id,
+          'result_approved',
+          'approved-spring2026',
+          'Results approved',
+          'Your Spring 2026 course results were approved by the head of department.',
+          '/results'
+        )
+      ),
+    ...[...returnedByTeacher.values()].map((offering) =>
+      notify(
+        offering.teacher.id,
+        'result_returned',
+        `returned-${offering.courseCode}`,
+        'Result returned',
+        `${offering.courseTitle} was returned by the head of department for review.`,
+        '/results'
+      )
+    ),
+    ...students.map((student) =>
+      notify(
+        student.id,
+        'result_published',
+        'results-fall2025',
+        'Result published',
+        'Your Fall 2025 results are available.',
+        '/results'
+      )
+    ),
+  ]
   const notifications = [
     ...students.flatMap((student) => {
       const lowCourses = currentOfferings
@@ -1706,11 +1932,69 @@ async function seedUniversity() {
           '/courses'
         )
       ),
+    ...extraNotifications,
   ]
   await NotificationModel.insertMany(notifications)
 
   const nextAudit = counter(NS.audit)
-  const audit: Array<[AuditAction, AuditModule, string, string]> = [
+  type AuditEntry = [
+    AuditAction,
+    AuditModule,
+    string,
+    string,
+    { id: Types.ObjectId; name: string; role: 'hod' | 'teacher' }?,
+  ]
+  const actorOf = (member: Staff) => ({ id: member.id, name: member.name, role: member.role })
+  const extraAudit: AuditEntry[] = [
+    ['activated', 'semesters', currentTerm.toString(), 'Fall 2026 (2026-2027)'],
+    ['closed', 'semesters', earlierTerm.toString(), 'Fall 2025 (2025-2026)'],
+    ['closed', 'semesters', pastTerm.toString(), 'Spring 2026 (2025-2026)'],
+    ...currentOfferings
+      .filter((_, i) => i % 3 === 0)
+      .map((o): AuditEntry => [
+        'saved',
+        'attendance',
+        o.id.toString(),
+        `${o.courseTitle} attendance`,
+        actorOf(o.teacher),
+      ]),
+    ...currentOfferings
+      .filter((_, i) => i % 4 === 1)
+      .map((o): AuditEntry => [
+        'saved',
+        'marks',
+        o.id.toString(),
+        `${o.courseTitle} midterm marks`,
+        actorOf(o.teacher),
+      ]),
+    ...currentOfferings
+      .filter((o) => resultPlan.has(o.id))
+      .map((o): AuditEntry => [
+        resultPlan.get(o.id) === 'draft' ? 'saved' : 'submitted',
+        'results',
+        o.id.toString(),
+        `${o.courseTitle} result`,
+        actorOf(o.teacher),
+      ]),
+    ...currentOfferings
+      .filter((o) => resultPlan.get(o.id) === 'returned')
+      .map((o): AuditEntry => [
+        'returned',
+        'results',
+        o.id.toString(),
+        `${o.courseTitle} result`,
+        actorOf(hodOf.get(o.dept)!),
+      ]),
+    ...students
+      .filter((_, i) => i % 40 === 0)
+      .map((student): AuditEntry => [
+        'reset_password',
+        'users',
+        student.id.toString(),
+        student.name,
+      ]),
+  ]
+  const audit: AuditEntry[] = [
     ...departmentSeeds.map((d): [AuditAction, AuditModule, string, string] => [
       'created',
       'departments',
@@ -1752,18 +2036,19 @@ async function seedUniversity() {
         (r._id as Types.ObjectId).toString(),
         'Spring 2026 course result',
       ]),
+    ...extraAudit,
   ]
   await AuditLogModel.insertMany(
-    audit.map(([action, module, affectedRecordId, label], index) => ({
+    audit.map(([action, module, affectedRecordId, label, actor], index) => ({
       _id: nextAudit(),
-      actorId: adminId,
-      actorName: 'Registrar Office',
-      actorRole: 'admin',
+      actorId: actor?.id ?? adminId,
+      actorName: actor?.name ?? 'Registrar Office',
+      actorRole: actor?.role ?? 'admin',
       action,
       module,
       affectedRecordId,
       affectedRecordLabel: label,
-      reason: 'University setup',
+      ...(actor ? {} : { reason: 'University setup' }),
       createdAt: new Date(now.getTime() - (audit.length - index) * 3_600_000 * 6),
     }))
   )
@@ -1784,7 +2069,7 @@ async function seedUniversity() {
           programs: programSeeds.length,
           batches: batchSeeds.length,
           semesters: semesterSeeds.length,
-          sections: cohortSeeds.length * 2,
+          sections: cohortSeeds.length * 4,
           staff: staff.length + 1,
           students: students.length,
           courses: courses.length,
@@ -1793,7 +2078,7 @@ async function seedUniversity() {
           attendanceSessions: sessions.length,
           assessments: assessmentDocs.length,
           results: resultDocs.length,
-          fees: students.length * 2,
+          fees: students.length * 3,
           exams: currentOfferings.length * 2,
           announcements: announcements.length,
           notifications: notifications.length,
